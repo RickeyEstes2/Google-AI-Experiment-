@@ -25,17 +25,21 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Accept Android SDK Licenses
+      - name: Accept Licenses and Install SDK Components
         run: |
           yes | sdkmanager --licenses || true
+          sdkmanager --channel=3 "platforms;android-36" || true
+          sdkmanager "platforms;android-35" "platforms;android-34" "build-tools;35.0.0" || true
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Prepare Keystore and Environment Variables
+      - name: Generate Wrapper, Keystore, and Environment
         run: |
+          gradle wrapper --gradle-version 8.11.1 --distribution-type bin
+          chmod +x gradlew
           if [ -f "debug.keystore.base64" ]; then
             base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || base64 -D debug.keystore.base64 > debug.keystore 2>/dev/null || true
           fi
@@ -51,10 +55,11 @@ jobs:
           fi
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        run: ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: DatabaseMastermind-APK
           path: |
