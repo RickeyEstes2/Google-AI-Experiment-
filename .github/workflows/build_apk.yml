@@ -21,31 +21,32 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Licenses and Install SDK Components
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager --channel=3 "platforms;android-36" || true
-          sdkmanager "platforms;android-35" "platforms;android-34" "build-tools;35.0.0" || true
+          cache: 'gradle'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Generate Wrapper, Keystore, and Environment
+      - name: Prepare Android SDK and Keystore
         run: |
-          gradle wrapper --gradle-version 8.11.1 --distribution-type bin
-          chmod +x gradlew
+          export ANDROID_HOME="/usr/local/lib/android/sdk"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          
+          # Accept SDK licenses
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          printf "24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n84831b9409646a578e44e6180296004d369da4d3\n601085b94cd77f0b54ff864063f4570504682e83\n" > "$ANDROID_HOME/licenses/android-sdk-license"
+          printf "84831b9409646a578e44e6180296004d369da4d3\n" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          
+          # Generate debug.keystore if not present
           if [ -f "debug.keystore.base64" ]; then
             base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || base64 -D debug.keystore.base64 > debug.keystore 2>/dev/null || true
           fi
           if [ ! -f "debug.keystore" ] || [ ! -s "debug.keystore" ]; then
             keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
+
+          # Ensure .env exists
           if [ ! -f ".env" ]; then
             if [ -f ".env.example" ]; then
               cp .env.example .env
@@ -55,7 +56,10 @@ jobs:
           fi
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
+        run: gradle :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
