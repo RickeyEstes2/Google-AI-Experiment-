@@ -21,17 +21,33 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Grant Execute Permission to Gradle Wrapper (if present)
-        run: chmod +x gradlew || true
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
 
-      - name: Build Debug APK with Gradle
-        run: gradle :app:assembleDebug --no-daemon
+      - name: Prepare Keystore and Environment
+        run: |
+          if [ -f "debug.keystore.base64" ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+          else
+            keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          if [ ! -f ".env" ]; then
+            if [ -f ".env.example" ]; then
+              cp .env.example .env
+            else
+              touch .env
+            fi
+          fi
 
-      - name: Upload Debug APK as Artifact
+      - name: Build Debug APK
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: DatabaseMastermind-Debug-APK
+          name: DatabaseMastermind-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
