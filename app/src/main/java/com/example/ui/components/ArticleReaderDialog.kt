@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -67,6 +68,54 @@ fun ArticleReaderDialog(
     var isAddingTag by remember { mutableStateOf(false) }
     var editingTagOldValue by remember { mutableStateOf<String?>(null) }
     var editingTagInput by remember { mutableStateOf("") }
+
+    // LaTeX, Chart & Venn Dialog states
+    var showInsertLatex by remember { mutableStateOf(false) }
+    var showInsertChart by remember { mutableStateOf(false) }
+    var showInsertVenn by remember { mutableStateOf(false) }
+    var insertTarget by remember { mutableStateOf("notes") } // "notes" or "comment"
+
+    if (showInsertLatex) {
+        InsertLatexDialog(
+            onDismiss = { showInsertLatex = false },
+            onInsertFormula = { latexCode ->
+                if (insertTarget == "comment") {
+                    newCommentText = if (newCommentText.isBlank()) latexCode else "$newCommentText\n\n$latexCode"
+                } else {
+                    onUpdateNotes(if (article.notes.isBlank()) latexCode else "${article.notes}\n\n$latexCode")
+                }
+                showInsertLatex = false
+            }
+        )
+    }
+
+    if (showInsertChart) {
+        InsertChartDialog(
+            onDismiss = { showInsertChart = false },
+            onInsertChart = { chartCode ->
+                if (insertTarget == "comment") {
+                    newCommentText = if (newCommentText.isBlank()) chartCode else "$newCommentText\n\n$chartCode"
+                } else {
+                    onUpdateNotes(if (article.notes.isBlank()) chartCode else "${article.notes}\n\n$chartCode")
+                }
+                showInsertChart = false
+            }
+        )
+    }
+
+    if (showInsertVenn) {
+        InsertVennDialog(
+            onDismiss = { showInsertVenn = false },
+            onInsertVenn = { vennCode ->
+                if (insertTarget == "comment") {
+                    newCommentText = if (newCommentText.isBlank()) vennCode else "$newCommentText\n\n$vennCode"
+                } else {
+                    onUpdateNotes(if (article.notes.isBlank()) vennCode else "${article.notes}\n\n$vennCode")
+                }
+                showInsertVenn = false
+            }
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -574,10 +623,13 @@ fun ArticleReaderDialog(
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 if (article.summary.isNotBlank()) {
-                                    Text(
-                                        text = article.summary,
+                                    RichArticleContent(
+                                        rawContent = article.summary,
                                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        onHashtagClick = { tag ->
+                                            onHashtagClick(tag)
+                                            onDismiss()
+                                        }
                                     )
                                 } else {
                                     Text(
@@ -592,7 +644,7 @@ fun ArticleReaderDialog(
                         }
                     }
 
-                    // Notes Section (with Rich formatting + Long press word styling!)
+                    // Notes Section (with Rich formatting + LaTeX + Charts + Venn + Word styling)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -618,6 +670,41 @@ fun ArticleReaderDialog(
                             )
                         }
 
+                        // Toolbar for inserting LaTeX, Charts, Venn Diagrams directly into Notes
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            SuggestionChip(
+                                onClick = {
+                                    insertTarget = "notes"
+                                    showInsertLatex = true
+                                },
+                                label = { Text("+ LaTeX Formula", fontSize = 11.sp) },
+                                icon = { Icon(Icons.Default.Functions, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                            )
+
+                            SuggestionChip(
+                                onClick = {
+                                    insertTarget = "notes"
+                                    showInsertChart = true
+                                },
+                                label = { Text("+ Chart", fontSize = 11.sp) },
+                                icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                            )
+
+                            SuggestionChip(
+                                onClick = {
+                                    insertTarget = "notes"
+                                    showInsertVenn = true
+                                },
+                                label = { Text("+ Venn Diagram", fontSize = 11.sp) },
+                                icon = { Icon(Icons.Default.DonutSmall, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                            )
+                        }
+
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -625,8 +712,8 @@ fun ArticleReaderDialog(
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 if (article.notes.isNotBlank()) {
-                                    HyperlinkText(
-                                        text = article.notes,
+                                    RichArticleContent(
+                                        rawContent = article.notes,
                                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                                         onHashtagClick = { tag ->
                                             onHashtagClick(tag)
@@ -638,7 +725,7 @@ fun ArticleReaderDialog(
                                     )
                                 } else {
                                     Text(
-                                        text = "No notes written yet. Tap Edit to add notes.",
+                                        text = "No notes written yet. Tap above buttons to insert LaTeX, Charts, or Venn diagrams.",
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
@@ -690,7 +777,7 @@ fun ArticleReaderDialog(
                                 OutlinedTextField(
                                     value = newCommentText,
                                     onValueChange = { newCommentText = it },
-                                    placeholder = { Text("Write a comment with links or #tag (long press word to format)...", fontSize = 13.sp) },
+                                    placeholder = { Text("Write a comment with links, LaTeX, or #tag...", fontSize = 13.sp) },
                                     minLines = 2,
                                     maxLines = 4,
                                     shape = RoundedCornerShape(10.dp),
@@ -699,8 +786,41 @@ fun ArticleReaderDialog(
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                insertTarget = "comment"
+                                                showInsertLatex = true
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Functions, contentDescription = "Insert LaTeX", modifier = Modifier.size(16.dp))
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                insertTarget = "comment"
+                                                showInsertChart = true
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.BarChart, contentDescription = "Insert Chart", modifier = Modifier.size(16.dp))
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                insertTarget = "comment"
+                                                showInsertVenn = true
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.DonutSmall, contentDescription = "Insert Venn", modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+
                                     Button(
                                         onClick = {
                                             if (newCommentText.isNotBlank()) {
@@ -777,9 +897,9 @@ fun ArticleReaderDialog(
                                                 }
                                             }
 
-                                            // Hyperlinkable & Formattable Comment Text
-                                            HyperlinkText(
-                                                text = comment.text,
+                                            // Hyperlinkable & Rich Formattable Comment Text
+                                            RichArticleContent(
+                                                rawContent = comment.text,
                                                 modifier = Modifier.fillMaxWidth(),
                                                 style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
                                                 onHashtagClick = { tag ->

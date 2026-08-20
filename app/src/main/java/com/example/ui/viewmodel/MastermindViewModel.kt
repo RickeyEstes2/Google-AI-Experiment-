@@ -26,6 +26,55 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    val cloudSyncManager = repository.cloudSyncManager
+
+    // Cloud Sync Dialog State
+    private val _isCloudSyncDialogOpen = MutableStateFlow(false)
+    val isCloudSyncDialogOpen: StateFlow<Boolean> = _isCloudSyncDialogOpen.asStateFlow()
+
+    fun openCloudSyncDialog() {
+        _isCloudSyncDialogOpen.value = true
+    }
+
+    fun closeCloudSyncDialog() {
+        _isCloudSyncDialogOpen.value = false
+    }
+
+    fun triggerCloudSyncNow() {
+        cloudSyncManager.triggerSyncNow()
+    }
+
+    fun createCloudSnapshot(note: String) {
+        viewModelScope.launch {
+            val entities = repository.getAllEntitiesDirect()
+            cloudSyncManager.createSnapshot(entities, note)
+        }
+    }
+
+    fun restoreCloudSnapshot(snapshot: com.example.data.sync.CloudSnapshot) {
+        viewModelScope.launch {
+            cloudSyncManager.restoreSnapshot(snapshot)
+            _snackbarMessage.value = "Cloud snapshot restored!"
+        }
+    }
+
+    fun exportCloudBackup(): String {
+        var result = ""
+        // Blocking run for clipboard copy or async export
+        kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+            val entities = repository.getAllEntitiesDirect()
+            result = cloudSyncManager.exportBackupJson(entities)
+        }
+        return result
+    }
+
+    fun importCloudBackup(json: String) {
+        viewModelScope.launch {
+            val success = cloudSyncManager.importBackupJson(json)
+            _snackbarMessage.value = if (success) "Backup restored successfully!" else "Failed to parse backup JSON"
+        }
+    }
+
     // Filter & Search state
     private val _selectedFilter = MutableStateFlow(LinkFilter.ALL)
     val selectedFilter: StateFlow<LinkFilter> = _selectedFilter.asStateFlow()

@@ -55,6 +55,42 @@ fun EditArticleDialog(
     var showFormatDialog by remember { mutableStateOf(false) }
     var formatWordTarget by remember { mutableStateOf("") }
 
+    // Insert LaTeX, Chart, Venn dialogs state
+    var showInsertLatex by remember { mutableStateOf(false) }
+    var showInsertChart by remember { mutableStateOf(false) }
+    var showInsertVenn by remember { mutableStateOf(false) }
+    var showPreviewTab by remember { mutableStateOf(false) }
+
+    if (showInsertLatex) {
+        InsertLatexDialog(
+            onDismiss = { showInsertLatex = false },
+            onInsertFormula = { latexCode ->
+                notes = if (notes.isBlank()) latexCode else "$notes\n\n$latexCode"
+                showInsertLatex = false
+            }
+        )
+    }
+
+    if (showInsertChart) {
+        InsertChartDialog(
+            onDismiss = { showInsertChart = false },
+            onInsertChart = { chartCode ->
+                notes = if (notes.isBlank()) chartCode else "$notes\n\n$chartCode"
+                showInsertChart = false
+            }
+        )
+    }
+
+    if (showInsertVenn) {
+        InsertVennDialog(
+            onDismiss = { showInsertVenn = false },
+            onInsertVenn = { vennCode ->
+                notes = if (notes.isBlank()) vennCode else "$notes\n\n$vennCode"
+                showInsertVenn = false
+            }
+        )
+    }
+
     if (showLinkPicker) {
         LinkPostPickerDialog(
             currentArticleId = article.id,
@@ -231,16 +267,80 @@ fun EditArticleDialog(
                         }
                     }
 
-                    OutlinedTextField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        placeholder = { Text("Personal notes, formatting, hyperlinks...") },
-                        leadingIcon = { Icon(Icons.Outlined.EditNote, contentDescription = null) },
-                        minLines = 3,
-                        maxLines = 6,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Rich Insertion Tools & Preview Toolbar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FilterChip(
+                            selected = showPreviewTab,
+                            onClick = { showPreviewTab = !showPreviewTab },
+                            label = { Text(if (showPreviewTab) "Edit Mode" else "Live Preview", fontSize = 11.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    if (showPreviewTab) Icons.Default.Edit else Icons.Default.Visibility,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        )
+
+                        SuggestionChip(
+                            onClick = { showInsertLatex = true },
+                            label = { Text("+ LaTeX Formula", fontSize = 11.sp) },
+                            icon = { Icon(Icons.Default.Functions, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                        )
+
+                        SuggestionChip(
+                            onClick = { showInsertChart = true },
+                            label = { Text("+ Chart", fontSize = 11.sp) },
+                            icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                        )
+
+                        SuggestionChip(
+                            onClick = { showInsertVenn = true },
+                            label = { Text("+ Venn Diagram", fontSize = 11.sp) },
+                            icon = { Icon(Icons.Default.DonutSmall, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                        )
+                    }
+
+                    if (showPreviewTab) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "PREVIEW",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                RichArticleContent(
+                                    rawContent = notes
+                                )
+                            }
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { notes = it },
+                            placeholder = { Text("Personal notes, LaTeX formulas ($$ x^2 $$), charts, Venn diagrams, hyperlinks...") },
+                            leadingIcon = { Icon(Icons.Outlined.EditNote, contentDescription = null) },
+                            minLines = 4,
+                            maxLines = 8,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     // Quick formatting suggestions
                     Row(

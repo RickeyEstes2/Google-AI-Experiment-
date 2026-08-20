@@ -47,6 +47,12 @@ interface ArticleDao {
     @Query("UPDATE articles SET isFavorite = :isFavorite WHERE id = :id")
     suspend fun setFavorite(id: Long, isFavorite: Boolean)
 
+    @Query("SELECT * FROM articles ORDER BY createdTimestamp DESC")
+    suspend fun getAllEntitiesDirect(): List<ArticleEntity>
+
     @Query("SELECT COUNT(*) FROM articles")
     suspend fun getArticlesCount(): Int
+
+    @Query("DELETE FROM articles")
+    suspend fun deleteAllArticles()
 }

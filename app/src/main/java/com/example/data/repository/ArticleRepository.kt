@@ -6,6 +6,7 @@ import com.example.data.db.ArticleDao
 import com.example.data.model.Article
 import com.example.data.model.ArticleEntity
 import com.example.data.model.LinkComment
+import com.example.data.sync.CloudSyncManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,12 +19,36 @@ class ArticleRepository(
     private val articleDao: ArticleDao,
     private val context: Context
 ) {
+    val cloudSyncManager = CloudSyncManager(context)
+
+    init {
+        cloudSyncManager.registerSyncCallbacks(
+            fetchLocalArticles = {
+                articleDao.getAllEntitiesDirect()
+            },
+            applySyncedArticles = { entities ->
+                articleDao.deleteAllArticles()
+                articleDao.insertAll(entities)
+            }
+        )
+    }
+
     val allArticles: Flow<List<Article>> = articleDao.getAllArticles().map { list ->
         list.map { it.toDomain() }
     }
 
     val favoriteArticles: Flow<List<Article>> = articleDao.getFavoriteArticles().map { list ->
         list.map { it.toDomain() }
+    }
+
+    suspend fun getAllEntitiesDirect(): List<ArticleEntity> = withContext(Dispatchers.IO) {
+        articleDao.getAllEntitiesDirect()
+    }
+
+    suspend fun replaceAllEntities(entities: List<ArticleEntity>) = withContext(Dispatchers.IO) {
+        articleDao.deleteAllArticles()
+        articleDao.insertAll(entities)
+        cloudSyncManager.notifyDataChanged()
     }
 
     suspend fun getArticleById(id: Long): Article? = withContext(Dispatchers.IO) {
@@ -68,11 +93,14 @@ class ArticleRepository(
             createdTimestamp = System.currentTimeMillis()
         )
 
-        articleDao.insertArticle(entity)
+        val id = articleDao.insertArticle(entity)
+        cloudSyncManager.notifyDataChanged()
+        id
     }
 
     suspend fun updateArticle(article: Article) = withContext(Dispatchers.IO) {
         articleDao.updateArticle(ArticleEntity.fromDomain(article))
+        cloudSyncManager.notifyDataChanged()
     }
 
     suspend fun updateLinkDetails(
@@ -102,6 +130,7 @@ class ArticleRepository(
             ).linkedPostIdsJson
         )
         articleDao.updateArticle(updated)
+        cloudSyncManager.notifyDataChanged()
     }
 
     suspend fun addComment(articleId: Long, commentText: String): Article? = withContext(Dispatchers.IO) {
@@ -114,6 +143,7 @@ class ArticleRepository(
         val updatedComments = current.comments + newComment
         val updatedArticle = current.copy(comments = updatedComments)
         articleDao.updateArticle(ArticleEntity.fromDomain(updatedArticle))
+        cloudSyncManager.notifyDataChanged()
         updatedArticle
     }
 
@@ -122,6 +152,7 @@ class ArticleRepository(
         val updatedComments = current.comments.filterNot { it.id == commentId }
         val updatedArticle = current.copy(comments = updatedComments)
         articleDao.updateArticle(ArticleEntity.fromDomain(updatedArticle))
+        cloudSyncManager.notifyDataChanged()
         updatedArticle
     }
 
@@ -132,15 +163,18 @@ class ArticleRepository(
         }
         val updatedArticle = current.copy(comments = updatedComments)
         articleDao.updateArticle(ArticleEntity.fromDomain(updatedArticle))
+        cloudSyncManager.notifyDataChanged()
         updatedArticle
     }
 
     suspend fun toggleFavorite(id: Long, current: Boolean) = withContext(Dispatchers.IO) {
         articleDao.setFavorite(id, !current)
+        cloudSyncManager.notifyDataChanged()
     }
 
     suspend fun deleteArticle(id: Long) = withContext(Dispatchers.IO) {
         articleDao.deleteArticleById(id)
+        cloudSyncManager.notifyDataChanged()
     }
 
     /**

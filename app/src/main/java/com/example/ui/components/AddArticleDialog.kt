@@ -48,6 +48,40 @@ fun AddArticleDialog(
     var showFormatDialog by remember { mutableStateOf(false) }
     var formatWordTarget by remember { mutableStateOf("") }
 
+    var showInsertLatex by remember { mutableStateOf(false) }
+    var showInsertChart by remember { mutableStateOf(false) }
+    var showInsertVenn by remember { mutableStateOf(false) }
+
+    if (showInsertLatex) {
+        InsertLatexDialog(
+            onDismiss = { showInsertLatex = false },
+            onInsertFormula = { latexCode ->
+                notes = if (notes.isBlank()) latexCode else "$notes\n\n$latexCode"
+                showInsertLatex = false
+            }
+        )
+    }
+
+    if (showInsertChart) {
+        InsertChartDialog(
+            onDismiss = { showInsertChart = false },
+            onInsertChart = { chartCode ->
+                notes = if (notes.isBlank()) chartCode else "$notes\n\n$chartCode"
+                showInsertChart = false
+            }
+        )
+    }
+
+    if (showInsertVenn) {
+        InsertVennDialog(
+            onDismiss = { showInsertVenn = false },
+            onInsertVenn = { vennCode ->
+                notes = if (notes.isBlank()) vennCode else "$notes\n\n$vennCode"
+                showInsertVenn = false
+            }
+        )
+    }
+
     if (showFormatDialog) {
         RichFormatWordDialog(
             initialWord = formatWordTarget,
@@ -187,10 +221,31 @@ fun AddArticleDialog(
                         }
                     }
 
+                    // Quick insert chips for LaTeX, Chart, Venn
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SuggestionChip(
+                            onClick = { showInsertLatex = true },
+                            label = { Text("+ LaTeX", fontSize = 11.sp) }
+                        )
+                        SuggestionChip(
+                            onClick = { showInsertChart = true },
+                            label = { Text("+ Chart", fontSize = 11.sp) }
+                        )
+                        SuggestionChip(
+                            onClick = { showInsertVenn = true },
+                            label = { Text("+ Venn", fontSize = 11.sp) }
+                        )
+                    }
+
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        placeholder = { Text("Add personal thoughts, key takeaways, highlights...") },
+                        placeholder = { Text("Add personal thoughts, LaTeX formulas ($$ x^2 $$), charts, Venn diagrams...") },
                         leadingIcon = {
                             Icon(Icons.Outlined.EditNote, contentDescription = null)
                         },

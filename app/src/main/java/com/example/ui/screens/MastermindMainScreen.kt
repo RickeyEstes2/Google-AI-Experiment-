@@ -21,9 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Article
+import com.example.data.sync.SyncStatus
 import com.example.ui.components.AddArticleDialog
 import com.example.ui.components.ArticleCard
 import com.example.ui.components.ArticleReaderDialog
+import com.example.ui.components.CloudSyncDialog
 import com.example.ui.components.EditArticleDialog
 import com.example.ui.components.LinkPostPickerDialog
 import com.example.ui.viewmodel.LinkFilter
@@ -51,6 +53,10 @@ fun MastermindMainScreen(
     val editingArticle by viewModel.editingArticle.collectAsState()
     val targetArticleForLinking by viewModel.targetArticleForLinking.collectAsState()
     val isLinkPickerOpen by viewModel.isLinkPickerOpen.collectAsState()
+    val isCloudSyncDialogOpen by viewModel.isCloudSyncDialogOpen.collectAsState()
+    val syncManager = viewModel.cloudSyncManager
+    val syncStatus by syncManager.syncStatus.collectAsState()
+    val autoSyncEnabled by syncManager.autoSyncEnabled.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -124,19 +130,62 @@ fun MastermindMainScreen(
                             )
                         }
 
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(start = 6.dp)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "${allArticlesList.size} Saved",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
+                            // Cloud Auto-Sync Status Chip
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (syncStatus == SyncStatus.SYNCING) {
+                                    MaterialTheme.colorScheme.tertiaryContainer
+                                } else if (autoSyncEnabled) {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                                modifier = Modifier.clickable { viewModel.openCloudSyncDialog() }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (syncStatus == SyncStatus.SYNCING) {
+                                            Icons.Default.Sync
+                                        } else if (autoSyncEnabled) {
+                                            Icons.Default.CloudDone
+                                        } else {
+                                            Icons.Default.CloudOff
+                                        },
+                                        contentDescription = "Cloud Auto Sync",
+                                        tint = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = if (syncStatus == SyncStatus.SYNCING) "Syncing..." else "Cloud Sync",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = "${allArticlesList.size} Saved",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
 
@@ -518,6 +567,19 @@ fun MastermindMainScreen(
             onHashtagClick = { tag ->
                 viewModel.setHashtag(tag)
             }
+        )
+    }
+
+    // Cloud Auto Sync Management Dialog
+    if (isCloudSyncDialogOpen) {
+        CloudSyncDialog(
+            syncManager = viewModel.cloudSyncManager,
+            currentArticleCount = allArticlesList.size,
+            onDismiss = { viewModel.closeCloudSyncDialog() },
+            onCreateSnapshot = { note -> viewModel.createCloudSnapshot(note) },
+            onRestoreSnapshot = { snapshot -> viewModel.restoreCloudSnapshot(snapshot) },
+            onExportBackup = { viewModel.exportCloudBackup() },
+            onImportBackup = { json -> viewModel.importCloudBackup(json) }
         )
     }
 }
