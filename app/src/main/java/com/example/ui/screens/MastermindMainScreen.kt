@@ -20,11 +20,17 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.Article
 import com.example.ui.components.AddArticleDialog
 import com.example.ui.components.ArticleCard
 import com.example.ui.components.ArticleReaderDialog
+import com.example.ui.components.EditArticleDialog
+import com.example.ui.components.LinkPostPickerDialog
 import com.example.ui.viewmodel.LinkFilter
 import com.example.ui.viewmodel.MastermindViewModel
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,9 +46,29 @@ fun MastermindMainScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isAddDialogOpen by viewModel.isAddDialogOpen.collectAsState()
     val activeArticle by viewModel.activeArticle.collectAsState()
+    val activeArticleLinkedPosts by viewModel.activeArticleLinkedPosts.collectAsState()
+    val articleBackStack by viewModel.articleBackStack.collectAsState()
+    val editingArticle by viewModel.editingArticle.collectAsState()
+    val targetArticleForLinking by viewModel.targetArticleForLinking.collectAsState()
+    val isLinkPickerOpen by viewModel.isLinkPickerOpen.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Live Clock State for Fixed Header (12-hour format, Day of the week, Day of the month, Month, Year)
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = System.currentTimeMillis()
+            delay(1000L)
+        }
+    }
+
+    val timeFormatter = remember { SimpleDateFormat("hh:mm:ss a", Locale.getDefault()) }
+    val dateFormatter = remember { SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()) }
+
+    val formattedTime = remember(currentTime) { timeFormatter.format(Date(currentTime)) }
+    val formattedDate = remember(currentTime) { dateFormatter.format(Date(currentTime)) }
 
     LaunchedEffect(snackbarMessage) {
         snackbarMessage?.let {
@@ -54,61 +80,124 @@ fun MastermindMainScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = {
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 4.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // App Title Row
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Share,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Chrome Hub",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.padding(start = 6.dp)
+                        ) {
+                            Text(
+                                text = "${allArticlesList.size} Saved",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    // FIXED HEADER: 12-Hour Time, Day of Week, Day of Month, Month, and Year
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Left: Time (12-hour format)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Default.Share,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(20.dp)
+                                    imageVector = Icons.Outlined.Schedule,
+                                    contentDescription = "Current Time",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = formattedTime,
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                )
+                            }
+
+                            // Right: Day of week, Month, Day of month, Year
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CalendarToday,
+                                    contentDescription = "Current Date",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = formattedDate,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 11.5.sp
+                                    )
                                 )
                             }
                         }
-                        Column {
-                            Text(
-                                text = "Saved Links Hub",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Text(
-                                text = "Chrome Shares • Notes • Summaries",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-                        }
                     }
-                },
-                actions = {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        Text(
-                            text = "${allArticlesList.size} Links",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            ),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
+                }
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -133,7 +222,7 @@ fun MastermindMainScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = { Text("Search titles, notes, summaries, #tags, comments...", fontSize = 13.sp) },
+                placeholder = { Text("Search title, notes, hashtags, comments...", fontSize = 13.sp) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -160,7 +249,7 @@ fun MastermindMainScreen(
                     .testTag("search_links_input")
             )
 
-            // Primary Filter Chips (All, Favorites, Archived) + Hashtags
+            // Filter Chips (All, Favorites) + Dynamic Hashtags
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -184,17 +273,6 @@ fun MastermindMainScreen(
                         label = { Text("Favorites") },
                         leadingIcon = {
                             Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                        },
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = selectedFilter == LinkFilter.ARCHIVED,
-                        onClick = { viewModel.setFilter(LinkFilter.ARCHIVED) },
-                        label = { Text("Archived") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(16.dp))
                         },
                         shape = RoundedCornerShape(20.dp)
                     )
@@ -225,7 +303,7 @@ fun MastermindMainScreen(
                 }
             }
 
-            // Active Hashtag Filter Banner (if a hashtag is active)
+            // Active Hashtag Filter Banner
             AnimatedVisibility(visible = selectedHashtag != null) {
                 selectedHashtag?.let { tag ->
                     Row(
@@ -318,7 +396,7 @@ fun MastermindMainScreen(
                                     )
                                 )
                                 Text(
-                                    text = "1. Open any website in Google Chrome.\n2. Tap the three dots (⋮) menu in Chrome.\n3. Tap Share... and choose this app.\n4. Your link, summary, notes, and hashtags are saved!",
+                                    text = "1. Open any website in Google Chrome.\n2. Tap the three dots (⋮) menu in Chrome.\n3. Tap Share... and choose Chrome Hub.\n4. Your link, summary, notes, preview image, and hashtags are saved!",
                                     style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -347,8 +425,8 @@ fun MastermindMainScreen(
                         ArticleCard(
                             article = article,
                             onClick = { viewModel.openArticle(article) },
+                            onEdit = { viewModel.openEditDialog(article) },
                             onToggleFavorite = { viewModel.toggleFavorite(article) },
-                            onToggleArchive = { viewModel.toggleArchive(article) },
                             onDelete = { viewModel.deleteLink(article) },
                             onHashtagClick = { tag -> viewModel.setHashtag(tag) }
                         )
@@ -362,10 +440,11 @@ fun MastermindMainScreen(
     if (isAddDialogOpen) {
         AddArticleDialog(
             onDismiss = { viewModel.closeAddDialog() },
-            onSave = { url, title, summary, notes, hashtags ->
+            onSave = { url, title, thumbnailUrl, summary, notes, hashtags ->
                 viewModel.addNewLink(
                     url = url,
                     title = title,
+                    thumbnailUrl = thumbnailUrl,
                     summary = summary,
                     notes = notes,
                     hashtags = hashtags
@@ -374,22 +453,67 @@ fun MastermindMainScreen(
         )
     }
 
-    // Link Details, Notes, Summary, Hashtags, and Hyperlinkable Comments Dialog
+    // Edit Post Dialog
+    editingArticle?.let { articleToEdit ->
+        EditArticleDialog(
+            article = articleToEdit,
+            allArticles = allArticlesList,
+            onDismiss = { viewModel.closeEditDialog() },
+            onSave = { title, url, thumbnailUrl, summary, notes, hashtags, linkedPostIds ->
+                viewModel.saveEditedArticle(
+                    id = articleToEdit.id,
+                    title = title,
+                    url = url,
+                    thumbnailUrl = thumbnailUrl,
+                    summary = summary,
+                    notes = notes,
+                    hashtags = hashtags,
+                    linkedPostIds = linkedPostIds
+                )
+            }
+        )
+    }
+
+    // Link Post Picker Dialog
+    if (isLinkPickerOpen && targetArticleForLinking != null) {
+        val target = targetArticleForLinking!!
+        LinkPostPickerDialog(
+            currentArticleId = target.id,
+            allArticles = allArticlesList,
+            initialSelectedIds = target.linkedPostIds,
+            onDismiss = { viewModel.closeLinkPicker() },
+            onConfirmSelection = { newLinkedIds ->
+                viewModel.updateLinkedPosts(target.id, newLinkedIds)
+            }
+        )
+    }
+
+    // Article Reader / Detail Dialog
     activeArticle?.let { article ->
         ArticleReaderDialog(
             article = article,
+            linkedArticles = activeArticleLinkedPosts,
+            backStackDepth = articleBackStack.size,
             onDismiss = { viewModel.closeArticle() },
+            onNavigateBack = { viewModel.navigateBackInStack() },
+            onNavigateToLinkedArticle = { linked -> viewModel.navigateToLinkedArticle(linked) },
+            onOpenEditPost = { viewModel.openEditDialog(article) },
             onToggleFavorite = { viewModel.toggleFavorite(article) },
-            onToggleArchive = { viewModel.toggleArchive(article) },
             onDelete = { viewModel.deleteLink(article) },
-            onUpdateLink = { title, summary, notes, hashtags ->
-                viewModel.updateLink(article.id, title, summary, notes, hashtags)
+            onUpdateNotes = { newNotes ->
+                viewModel.updateNotes(article.id, newNotes)
+            },
+            onUpdateHashtags = { newHashtags ->
+                viewModel.updateHashtags(article.id, newHashtags)
             },
             onAddComment = { commentText ->
                 viewModel.addCommentToActiveLink(commentText)
             },
             onDeleteComment = { commentId ->
                 viewModel.deleteCommentFromActiveLink(commentId)
+            },
+            onUpdateComment = { commentId, newText ->
+                viewModel.updateCommentText(article.id, commentId, newText)
             },
             onHashtagClick = { tag ->
                 viewModel.setHashtag(tag)

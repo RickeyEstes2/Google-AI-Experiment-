@@ -29,15 +29,13 @@ data class ArticleEntity(
     val thumbnailUrl: String = "",
     val category: String = "General",
     val hashtagsJson: String = "",
-    val contentEncrypted: String = "", // Notes
+    val contentEncrypted: String = "", // Notes (with rich formatting & hyperlinks)
     val summaryEncrypted: String = "", // Summary
     val commentsJson: String = "", // Comments JSON array
+    val linkedPostIdsJson: String = "", // JSON array of linked post IDs
     val readingTimeMinutes: Int = 1,
     val isFavorite: Boolean = false,
-    val isArchived: Boolean = false,
-    val createdTimestamp: Long = System.currentTimeMillis(),
-    val equationsJsonEncrypted: String = "",
-    val nlpJsonEncrypted: String = ""
+    val createdTimestamp: Long = System.currentTimeMillis()
 ) {
     fun toDomain(): Article {
         return Article(
@@ -51,9 +49,9 @@ data class ArticleEntity(
             notes = CryptoManager.decrypt(contentEncrypted),
             summary = CryptoManager.decrypt(summaryEncrypted),
             comments = parseComments(commentsJson),
+            linkedPostIds = parseLinkedPostIds(linkedPostIdsJson),
             readingTimeMinutes = readingTimeMinutes,
             isFavorite = isFavorite,
-            isArchived = isArchived,
             createdTimestamp = createdTimestamp
         )
     }
@@ -71,9 +69,9 @@ data class ArticleEntity(
                 contentEncrypted = CryptoManager.encrypt(article.notes),
                 summaryEncrypted = CryptoManager.encrypt(article.summary),
                 commentsJson = serializeComments(article.comments),
+                linkedPostIdsJson = serializeLinkedPostIds(article.linkedPostIds),
                 readingTimeMinutes = article.readingTimeMinutes,
                 isFavorite = article.isFavorite,
-                isArchived = article.isArchived,
                 createdTimestamp = article.createdTimestamp
             )
         }
@@ -118,6 +116,27 @@ data class ArticleEntity(
             }
             return array.toString()
         }
+
+        private fun parseLinkedPostIds(raw: String): List<Long> {
+            if (raw.isBlank()) return emptyList()
+            val list = mutableListOf<Long>()
+            try {
+                val array = JSONArray(raw)
+                for (i in 0 until array.length()) {
+                    list.add(array.getLong(i))
+                }
+            } catch (e: Exception) {
+                // Fallback comma-separated parsing
+                raw.split(",").mapNotNull { it.trim().toLongOrNull() }.forEach { list.add(it) }
+            }
+            return list
+        }
+
+        private fun serializeLinkedPostIds(ids: List<Long>): String {
+            val array = JSONArray()
+            ids.forEach { array.put(it) }
+            return array.toString()
+        }
     }
 }
 
@@ -135,8 +154,8 @@ data class Article(
     val notes: String = "",
     val summary: String = "",
     val comments: List<LinkComment> = emptyList(),
+    val linkedPostIds: List<Long> = emptyList(),
     val readingTimeMinutes: Int = 1,
     val isFavorite: Boolean = false,
-    val isArchived: Boolean = false,
     val createdTimestamp: Long = System.currentTimeMillis()
 )

@@ -11,8 +11,7 @@ import kotlinx.coroutines.launch
 
 enum class LinkFilter {
     ALL,
-    FAVORITES,
-    ARCHIVED
+    FAVORITES
 }
 
 class MastermindViewModel(application: Application) : AndroidViewModel(application) {
@@ -43,6 +42,26 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
     private val _activeArticle = MutableStateFlow<Article?>(null)
     val activeArticle: StateFlow<Article?> = _activeArticle.asStateFlow()
 
+    // Editing Dialog State
+    private val _editingArticle = MutableStateFlow<Article?>(null)
+    val editingArticle: StateFlow<Article?> = _editingArticle.asStateFlow()
+
+    // Linking Picker Dialog State
+    private val _isLinkPickerOpen = MutableStateFlow(false)
+    val isLinkPickerOpen: StateFlow<Boolean> = _isLinkPickerOpen.asStateFlow()
+
+    private val _targetArticleForLinking = MutableStateFlow<Article?>(null)
+    val targetArticleForLinking: StateFlow<Article?> = _targetArticleForLinking.asStateFlow()
+
+    // Navigation history stack for linked posts browsing
+    private val _articleBackStack = MutableStateFlow<List<Article>>(emptyList())
+    val articleBackStack: StateFlow<List<Article>> = _articleBackStack.asStateFlow()
+
+    // Linked posts for active article
+    private val _activeLinkedArticles = MutableStateFlow<List<Article>>(emptyList())
+    val activeLinkedArticles: StateFlow<List<Article>> = _activeLinkedArticles.asStateFlow()
+    val activeArticleLinkedPosts: StateFlow<List<Article>> = _activeLinkedArticles.asStateFlow()
+
     private val _snackbarMessage = MutableStateFlow<String?>(null)
     val snackbarMessage: StateFlow<String?> = _snackbarMessage.asStateFlow()
 
@@ -62,9 +81,8 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
     ) { articles, filter, hashtag, query ->
         articles.filter { article ->
             val matchesFilter = when (filter) {
-                LinkFilter.ALL -> !article.isArchived
-                LinkFilter.FAVORITES -> article.isFavorite && !article.isArchived
-                LinkFilter.ARCHIVED -> article.isArchived
+                LinkFilter.ALL -> true
+                LinkFilter.FAVORITES -> article.isFavorite
             }
             val matchesHashtag = hashtag == null || article.hashtags.any { it.equals(hashtag, ignoreCase = true) }
             val matchesQuery = if (query.isBlank()) {
@@ -102,55 +120,199 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
         _isAddDialogOpen.value = false
     }
 
+    fun openEditDialog(article: Article) {
+        _editingArticle.value = article
+    }
+
+    fun closeEditDialog() {
+        _editingArticle.value = null
+    }
+
+    fun openLinkPickerForArticle(article: Article) {
+        _targetArticleForLinking.value = article
+        _isLinkPickerOpen.value = true
+    }
+
+    fun closeLinkPicker() {
+        _isLinkPickerOpen.value = false
+        _targetArticleForLinking.value = null
+    }
+
     fun openArticle(article: Article) {
+        _articleBackStack.value = emptyList()
         _activeArticle.value = article
+        loadLinkedArticles(article.linkedPostIds)
+    }
+
+    fun navigateToLinkedArticle(linkedArticle: Article) {
+        val current = _activeArticle.value
+        if (current != null) {
+            _articleBackStack.value = _articleBackStack.value + current
+        }
+        _activeArticle.value = linkedArticle
+        loadLinkedArticles(linkedArticle.linkedPostIds)
+    }
+
+    fun navigateBackInStack(): Boolean {
+        val stack = _articleBackStack.value
+        if (stack.isNotEmpty()) {
+            val previous = stack.last()
+            _articleBackStack.value = stack.dropLast(1)
+            _activeArticle.value = previous
+            loadLinkedArticles(previous.linkedPostIds)
+            return true
+        } else {
+            closeArticle()
+            return false
+        }
     }
 
     fun closeArticle() {
         _activeArticle.value = null
+        _articleBackStack.value = emptyList()
+        _activeLinkedArticles.value = emptyList()
+    }
+
+    private fun loadLinkedArticles(ids: List<Long>) {
+        if (ids.isEmpty()) {
+            _activeLinkedArticles.value = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            _activeLinkedArticles.value = repository.getArticlesByIds(ids)
+        }
     }
 
     fun addNewLink(
         url: String,
         title: String,
+        thumbnailUrl: String = "",
         summary: String,
         notes: String,
-        hashtags: List<String>
+        hashtags: List<String>,
+        linkedPostIds: List<Long> = emptyList()
     ) {
         viewModelScope.launch {
             repository.saveArticle(
                 url = url,
                 title = title,
+                thumbnailUrl = thumbnailUrl,
                 summary = summary,
                 notes = notes,
-                hashtags = hashtags
+                hashtags = hashtags,
+                linkedPostIds = linkedPostIds
             )
             _isAddDialogOpen.value = false
-            _snackbarMessage.value = "Link saved with notes & summary!"
+            _snackbarMessage.value = "Link saved!"
         }
     }
 
-    fun updateLink(
+    fun saveEditedArticle(
         id: Long,
         title: String,
+        url: String,
+        thumbnailUrl: String,
         summary: String,
         notes: String,
-        hashtags: List<String>
+        hashtags: List<String>,
+        linkedPostIds: List<Long>
     ) {
         viewModelScope.launch {
             repository.updateLinkDetails(
                 id = id,
                 title = title,
+                url = url,
+                thumbnailUrl = thumbnailUrl,
                 summary = summary,
                 notes = notes,
-                hashtags = hashtags
+                hashtags = hashtags,
+                linkedPostIds = linkedPostIds
             )
-            // Refresh active article if currently open
             val updated = repository.getArticleById(id)
-            if (_activeArticle.value?.id == id) {
+            if (_activeArticle.value?.id == id && updated != null) {
+                _activeArticle.value = updated
+                loadLinkedArticles(updated.linkedPostIds)
+            }
+            _editingArticle.value = null
+            _snackbarMessage.value = "Post updated!"
+        }
+    }
+
+    fun updateLinkedPosts(articleId: Long, linkedPostIds: List<Long>) {
+        viewModelScope.launch {
+            val article = repository.getArticleById(articleId) ?: return@launch
+            repository.updateLinkDetails(
+                id = article.id,
+                title = article.title,
+                url = article.url,
+                thumbnailUrl = article.thumbnailUrl,
+                summary = article.summary,
+                notes = article.notes,
+                hashtags = article.hashtags,
+                linkedPostIds = linkedPostIds
+            )
+            val updated = repository.getArticleById(articleId)
+            if (_activeArticle.value?.id == articleId && updated != null) {
+                _activeArticle.value = updated
+                loadLinkedArticles(updated.linkedPostIds)
+            }
+            if (_editingArticle.value?.id == articleId && updated != null) {
+                _editingArticle.value = updated
+            }
+            closeLinkPicker()
+            _snackbarMessage.value = "Linked posts updated"
+        }
+    }
+
+    fun updateNotes(articleId: Long, newNotes: String) {
+        viewModelScope.launch {
+            val article = repository.getArticleById(articleId) ?: return@launch
+            repository.updateLinkDetails(
+                id = article.id,
+                title = article.title,
+                url = article.url,
+                thumbnailUrl = article.thumbnailUrl,
+                summary = article.summary,
+                notes = newNotes,
+                hashtags = article.hashtags,
+                linkedPostIds = article.linkedPostIds
+            )
+            val updated = repository.getArticleById(articleId)
+            if (_activeArticle.value?.id == articleId && updated != null) {
                 _activeArticle.value = updated
             }
-            _snackbarMessage.value = "Changes saved!"
+            _snackbarMessage.value = "Notes updated"
+        }
+    }
+
+    fun updateHashtags(articleId: Long, newHashtags: List<String>) {
+        viewModelScope.launch {
+            val article = repository.getArticleById(articleId) ?: return@launch
+            repository.updateLinkDetails(
+                id = article.id,
+                title = article.title,
+                url = article.url,
+                thumbnailUrl = article.thumbnailUrl,
+                summary = article.summary,
+                notes = article.notes,
+                hashtags = newHashtags,
+                linkedPostIds = article.linkedPostIds
+            )
+            val updated = repository.getArticleById(articleId)
+            if (_activeArticle.value?.id == articleId && updated != null) {
+                _activeArticle.value = updated
+            }
+            _snackbarMessage.value = "Hashtags updated"
+        }
+    }
+
+    fun updateCommentText(articleId: Long, commentId: String, newText: String) {
+        viewModelScope.launch {
+            val updated = repository.updateCommentText(articleId, commentId, newText)
+            if (_activeArticle.value?.id == articleId && updated != null) {
+                _activeArticle.value = updated
+            }
+            _snackbarMessage.value = "Comment updated"
         }
     }
 
@@ -187,31 +349,16 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    fun toggleArchive(article: Article) {
-        viewModelScope.launch {
-            repository.toggleArchive(article.id, article.isArchived)
-            val updated = article.copy(isArchived = !article.isArchived)
-            if (_activeArticle.value?.id == article.id) {
-                _activeArticle.value = updated
-            }
-            val msg = if (!article.isArchived) "Link archived" else "Link unarchived"
-            _snackbarMessage.value = msg
-        }
-    }
-
     fun deleteLink(article: Article) {
         viewModelScope.launch {
             repository.deleteArticle(article.id)
             if (_activeArticle.value?.id == article.id) {
-                _activeArticle.value = null
+                navigateBackInStack()
             }
             _snackbarMessage.value = "Link deleted"
         }
     }
 
-    /**
-     * Ingests incoming share intent from Google Chrome
-     */
     fun handleChromeShare(sharedText: String) {
         viewModelScope.launch {
             repository.ingestSharedContent(sharedText)

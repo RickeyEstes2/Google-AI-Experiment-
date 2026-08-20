@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,8 +8,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Subject
 import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.*
@@ -24,14 +27,48 @@ import androidx.compose.ui.window.Dialog
 @Composable
 fun AddArticleDialog(
     onDismiss: () -> Unit,
-    onSave: (url: String, title: String, summary: String, notes: String, hashtags: List<String>) -> Unit,
+    onSave: (
+        url: String,
+        title: String,
+        thumbnailUrl: String,
+        summary: String,
+        notes: String,
+        hashtags: List<String>
+    ) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var url by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
+    var thumbnailUrl by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var hashtagsInput by remember { mutableStateOf("") }
+
+    // Rich text formatting dialog state
+    var showFormatDialog by remember { mutableStateOf(false) }
+    var formatWordTarget by remember { mutableStateOf("") }
+
+    if (showFormatDialog) {
+        RichFormatWordDialog(
+            initialWord = formatWordTarget,
+            onDismiss = { showFormatDialog = false },
+            onApplyFormatting = { formattedSpan ->
+                if (formatWordTarget.isNotBlank() && notes.contains(formatWordTarget)) {
+                    notes = notes.replaceFirst(formatWordTarget, formattedSpan)
+                } else {
+                    notes = if (notes.isBlank()) formattedSpan else "$notes $formattedSpan"
+                }
+                showFormatDialog = false
+            },
+            onRemoveFormatting = {
+                if (formatWordTarget.isNotBlank()) {
+                    val plain = formatWordTarget.replace(Regex("\\[([^\\]]+)\\]\\{[^\\}]+\\}"), "$1")
+                    notes = notes.replace(formatWordTarget, plain)
+                }
+                showFormatDialog = false
+            }
+        )
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -40,7 +77,7 @@ fun AddArticleDialog(
             tonalElevation = 6.dp,
             modifier = modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(8.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -56,7 +93,7 @@ fun AddArticleDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Save Link with Details",
+                        text = "Save Link & Details",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     IconButton(onClick = onDismiss) {
@@ -65,7 +102,7 @@ fun AddArticleDialog(
                 }
 
                 Text(
-                    text = "Tip: You can also share any website directly from Google Chrome by tapping 'Share' in Chrome and picking this app.",
+                    text = "Tip: You can also share any website directly from Google Chrome by tapping 'Share' in Chrome.",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp
@@ -100,6 +137,19 @@ fun AddArticleDialog(
                 )
 
                 OutlinedTextField(
+                    value = thumbnailUrl,
+                    onValueChange = { thumbnailUrl = it },
+                    label = { Text("Preview Image URL (Optional)") },
+                    placeholder = { Text("https://example.com/image.png") },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.Image, contentDescription = null)
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
                     value = summary,
                     onValueChange = { summary = it },
                     label = { Text("Summary (Optional)") },
@@ -113,19 +163,43 @@ fun AddArticleDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (Optional)") },
-                    placeholder = { Text("Add personal thoughts, key takeaways...") },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.EditNote, contentDescription = null)
-                    },
-                    minLines = 2,
-                    maxLines = 5,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Notes & Rich Text (Optional)",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        FilledTonalButton(
+                            onClick = {
+                                formatWordTarget = ""
+                                showFormatDialog = true
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.FormatPaint, contentDescription = null, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Format", fontSize = 11.sp)
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        placeholder = { Text("Add personal thoughts, key takeaways, highlights...") },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.EditNote, contentDescription = null)
+                        },
+                        minLines = 2,
+                        maxLines = 5,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 OutlinedTextField(
                     value = hashtagsInput,
@@ -157,7 +231,7 @@ fun AddArticleDialog(
                                 .filter { it.isNotBlank() }
                                 .map { "#$it" }
 
-                            onSave(finalUrl, title, summary, notes, tags)
+                            onSave(finalUrl, title, thumbnailUrl, summary, notes, tags)
                         }
                     },
                     modifier = Modifier
@@ -174,3 +248,4 @@ fun AddArticleDialog(
         }
     }
 }
+

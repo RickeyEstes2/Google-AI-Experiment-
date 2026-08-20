@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import com.example.data.model.Article
 import java.text.SimpleDateFormat
 import java.util.*
@@ -41,28 +43,30 @@ import java.util.*
 @Composable
 fun ArticleReaderDialog(
     article: Article,
+    linkedArticles: List<Article>,
+    backStackDepth: Int = 0,
     onDismiss: () -> Unit,
+    onNavigateBack: () -> Unit,
+    onNavigateToLinkedArticle: (Article) -> Unit,
+    onOpenEditPost: () -> Unit,
     onToggleFavorite: () -> Unit,
-    onToggleArchive: () -> Unit,
     onDelete: () -> Unit,
-    onUpdateLink: (title: String, summary: String, notes: String, hashtags: List<String>) -> Unit,
+    onUpdateNotes: (newNotes: String) -> Unit,
+    onUpdateHashtags: (newHashtags: List<String>) -> Unit,
     onAddComment: (commentText: String) -> Unit,
     onDeleteComment: (commentId: String) -> Unit,
+    onUpdateComment: (commentId: String, newText: String) -> Unit,
     onHashtagClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val formattedDate = SimpleDateFormat("MMMM dd, yyyy • h:mm a", Locale.getDefault()).format(Date(article.createdTimestamp))
 
-    var isEditingDetails by remember { mutableStateOf(false) }
-    var editTitle by remember(article) { mutableStateOf(article.title) }
-    var editSummary by remember(article) { mutableStateOf(article.summary) }
-    var editNotes by remember(article) { mutableStateOf(article.notes) }
-    var editHashtagsText by remember(article) { mutableStateOf(article.hashtags.joinToString(", ")) }
-
     var newCommentText by remember { mutableStateOf("") }
     var newTagInput by remember { mutableStateOf("") }
     var isAddingTag by remember { mutableStateOf(false) }
+    var editingTagOldValue by remember { mutableStateOf<String?>(null) }
+    var editingTagInput by remember { mutableStateOf("") }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -84,37 +88,53 @@ fun ArticleReaderDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag("close_link_reader")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        IconButton(
+                            onClick = {
+                                if (backStackDepth > 0) {
+                                    onNavigateBack()
+                                } else {
+                                    onDismiss()
+                                }
+                            },
+                            modifier = Modifier.testTag("close_link_reader")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = if (backStackDepth > 0) "Previous Linked Post" else "Back"
+                            )
+                        }
+
+                        if (backStackDepth > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+                            ) {
+                                Text(
+                                    text = "Linked Stack ($backStackDepth)",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Edit / Save details toggle
-                        IconButton(
-                            onClick = {
-                                if (isEditingDetails) {
-                                    val tags = editHashtagsText
-                                        .split(",", " ")
-                                        .map { it.trim().removePrefix("#") }
-                                        .filter { it.isNotBlank() }
-                                        .map { "#$it" }
-                                    onUpdateLink(editTitle, editSummary, editNotes, tags)
-                                    isEditingDetails = false
-                                } else {
-                                    isEditingDetails = true
-                                }
-                            }
-                        ) {
+                        // Edit post full dialog button
+                        IconButton(onClick = onOpenEditPost) {
                             Icon(
-                                imageVector = if (isEditingDetails) Icons.Default.Check else Icons.Outlined.Edit,
-                                contentDescription = if (isEditingDetails) "Save Details" else "Edit Details",
-                                tint = if (isEditingDetails) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = "Edit Post",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -123,13 +143,6 @@ fun ArticleReaderDialog(
                                 imageVector = if (article.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 contentDescription = "Favorite",
                                 tint = if (article.isFavorite) Color(0xFFE11D48) else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        IconButton(onClick = onToggleArchive) {
-                            Icon(
-                                imageVector = if (article.isArchived) Icons.Filled.Unarchive else Icons.Outlined.Archive,
-                                contentDescription = if (article.isArchived) "Unarchive" else "Archive"
                             )
                         }
 
@@ -150,10 +163,28 @@ fun ArticleReaderDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(20.dp)
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Preview image if available
+                    if (article.thumbnailUrl.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            AsyncImage(
+                                model = article.thumbnailUrl,
+                                contentDescription = "Preview Image",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+
                     // Domain badge & Timestamp
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -183,24 +214,14 @@ fun ArticleReaderDialog(
                     }
 
                     // Title
-                    if (isEditingDetails) {
-                        OutlinedTextField(
-                            value = editTitle,
-                            onValueChange = { editTitle = it },
-                            label = { Text("Title") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                    } else {
-                        Text(
-                            text = article.title,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                lineHeight = 30.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                    Text(
+                        text = article.title,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 30.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
                     // Target URL & Open actions
                     Surface(
@@ -295,7 +316,96 @@ fun ArticleReaderDialog(
                         }
                     }
 
-                    // Hashtags Section
+                    // Linked Posts Section
+                    if (linkedArticles.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Default.Link, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                Text(
+                                    text = "Linked Posts (${linkedArticles.size})",
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                linkedArticles.forEach { linked ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onNavigateToLinkedArticle(linked) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (linked.thumbnailUrl.isNotBlank()) {
+                                                    AsyncImage(
+                                                        model = linked.thumbnailUrl,
+                                                        contentDescription = null,
+                                                        contentScale = ContentScale.Crop,
+                                                        modifier = Modifier
+                                                            .size(40.dp)
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                    )
+                                                } else {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                                        modifier = Modifier.size(40.dp)
+                                                    ) {
+                                                        Box(contentAlignment = Alignment.Center) {
+                                                            Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                                        }
+                                                    }
+                                                }
+
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = linked.title,
+                                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                        maxLines = 1
+                                                    )
+                                                    Text(
+                                                        text = linked.sourceDomain,
+                                                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
+                                                    )
+                                                }
+                                            }
+
+                                            Icon(
+                                                imageVector = Icons.Default.ChevronRight,
+                                                contentDescription = "Open Linked Post",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Hashtags Section (Add, Remove, Edit)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -312,71 +422,95 @@ fun ArticleReaderDialog(
                                 Icon(Icons.Outlined.Tag, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                 Text("Hashtags", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                             }
-                            if (!isEditingDetails) {
-                                TextButton(onClick = { isAddingTag = !isAddingTag }) {
-                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(if (isAddingTag) "Close" else "Add Tag", fontSize = 12.sp)
+                            TextButton(onClick = { isAddingTag = !isAddingTag }) {
+                                Icon(if (isAddingTag) Icons.Default.Close else Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(if (isAddingTag) "Cancel" else "Add Tag", fontSize = 12.sp)
+                            }
+                        }
+
+                        // Add new tag input
+                        if (isAddingTag) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = newTagInput,
+                                    onValueChange = { newTagInput = it },
+                                    placeholder = { Text("e.g. #technology") },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Button(
+                                    onClick = {
+                                        if (newTagInput.isNotBlank()) {
+                                            val clean = "#" + newTagInput.trim().removePrefix("#")
+                                            if (!article.hashtags.contains(clean)) {
+                                                onUpdateHashtags(article.hashtags + clean)
+                                            }
+                                            newTagInput = ""
+                                            isAddingTag = false
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Add")
                                 }
                             }
                         }
 
-                        if (isEditingDetails) {
-                            OutlinedTextField(
-                                value = editHashtagsText,
-                                onValueChange = { editHashtagsText = it },
-                                label = { Text("Hashtags (comma separated)") },
-                                placeholder = { Text("#tech, #research, #news") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        } else {
-                            if (isAddingTag) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                        // Edit single hashtag dialog
+                        if (editingTagOldValue != null) {
+                            AlertDialog(
+                                onDismissRequest = { editingTagOldValue = null },
+                                title = { Text("Edit Hashtag") },
+                                text = {
                                     OutlinedTextField(
-                                        value = newTagInput,
-                                        onValueChange = { newTagInput = it },
-                                        placeholder = { Text("e.g. #productivity") },
+                                        value = editingTagInput,
+                                        onValueChange = { editingTagInput = it },
                                         singleLine = true,
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.weight(1f)
+                                        label = { Text("Hashtag") }
                                     )
-                                    Button(
-                                        onClick = {
-                                            if (newTagInput.isNotBlank()) {
-                                                val clean = "#" + newTagInput.trim().removePrefix("#")
-                                                if (!article.hashtags.contains(clean)) {
-                                                    val updatedTags = article.hashtags + clean
-                                                    onUpdateLink(article.title, article.summary, article.notes, updatedTags)
-                                                }
-                                                newTagInput = ""
-                                                isAddingTag = false
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(10.dp)
-                                    ) {
-                                        Text("Add")
+                                },
+                                confirmButton = {
+                                    Button(onClick = {
+                                        val oldTag = editingTagOldValue!!
+                                        val clean = "#" + editingTagInput.trim().removePrefix("#")
+                                        if (clean.length > 1) {
+                                            val updated = article.hashtags.map { if (it == oldTag) clean else it }
+                                            onUpdateHashtags(updated)
+                                        }
+                                        editingTagOldValue = null
+                                    }) {
+                                        Text("Save")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { editingTagOldValue = null }) {
+                                        Text("Cancel")
                                     }
                                 }
-                            }
+                            )
+                        }
 
-                            if (article.hashtags.isNotEmpty()) {
-                                LazyRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(article.hashtags) { tag ->
-                                        Surface(
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
-                                            modifier = Modifier.clickable {
-                                                onHashtagClick(tag)
-                                                onDismiss()
-                                            }
+                        // Hashtag list with edit/remove support
+                        if (article.hashtags.isNotEmpty()) {
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(article.hashtags) { tag ->
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Text(
                                                 text = tag,
@@ -384,17 +518,39 @@ fun ArticleReaderDialog(
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                                 ),
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                modifier = Modifier.clickable {
+                                                    onHashtagClick(tag)
+                                                    onDismiss()
+                                                }
                                             )
+                                            // Edit tag
+                                            IconButton(
+                                                onClick = {
+                                                    editingTagOldValue = tag
+                                                    editingTagInput = tag
+                                                },
+                                                modifier = Modifier.size(20.dp)
+                                            ) {
+                                                Icon(Icons.Outlined.Edit, contentDescription = "Edit tag", modifier = Modifier.size(12.dp))
+                                            }
+                                            // Remove tag
+                                            IconButton(
+                                                onClick = {
+                                                    onUpdateHashtags(article.hashtags.filter { it != tag })
+                                                },
+                                                modifier = Modifier.size(20.dp)
+                                            ) {
+                                                Icon(Icons.Outlined.Close, contentDescription = "Remove tag", modifier = Modifier.size(12.dp))
+                                            }
                                         }
                                     }
                                 }
-                            } else if (!isAddingTag) {
-                                Text(
-                                    text = "No hashtags yet. Tap '+ Add Tag' to categorize this link.",
-                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                )
                             }
+                        } else if (!isAddingTag) {
+                            Text(
+                                text = "No hashtags yet. Tap '+ Add Tag' to categorize this link.",
+                                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
                         }
                     }
 
@@ -411,88 +567,83 @@ fun ArticleReaderDialog(
                             Text("Summary", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                         }
 
-                        if (isEditingDetails) {
-                            OutlinedTextField(
-                                value = editSummary,
-                                onValueChange = { editSummary = it },
-                                label = { Text("Summary") },
-                                minLines = 3,
-                                maxLines = 6,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        } else {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    if (article.summary.isNotBlank()) {
-                                        Text(
-                                            text = article.summary,
-                                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                                            color = MaterialTheme.colorScheme.onSurface
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                if (article.summary.isNotBlank()) {
+                                    Text(
+                                        text = article.summary,
+                                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                } else {
+                                    Text(
+                                        text = "No summary provided. Tap Edit to add a summary.",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                                         )
-                                    } else {
-                                        Text(
-                                            text = "No summary provided. Tap the edit button at the top to add a summary.",
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                                            )
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         }
                     }
 
-                    // Notes Section
+                    // Notes Section (with Rich formatting + Long press word styling!)
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Outlined.EditNote, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
-                            Text("Notes", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(Icons.Outlined.EditNote, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
+                                Text("Notes & Takeaways", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            }
+                            Text(
+                                text = "Long press word to format",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 11.sp
+                                )
+                            )
                         }
 
-                        if (isEditingDetails) {
-                            OutlinedTextField(
-                                value = editNotes,
-                                onValueChange = { editNotes = it },
-                                label = { Text("Personal Notes") },
-                                minLines = 3,
-                                maxLines = 8,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        } else {
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    if (article.notes.isNotBlank()) {
-                                        Text(
-                                            text = article.notes,
-                                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                                            color = MaterialTheme.colorScheme.onSurface
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                if (article.notes.isNotBlank()) {
+                                    HyperlinkText(
+                                        text = article.notes,
+                                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                                        onHashtagClick = { tag ->
+                                            onHashtagClick(tag)
+                                            onDismiss()
+                                        },
+                                        onTextFormatted = { updatedNotes ->
+                                            onUpdateNotes(updatedNotes)
+                                        }
+                                    )
+                                } else {
+                                    Text(
+                                        text = "No notes written yet. Tap Edit to add notes.",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                                         )
-                                    } else {
-                                        Text(
-                                            text = "No notes written yet. Tap edit at the top to add your personal notes and takeaways.",
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                                            )
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -539,7 +690,7 @@ fun ArticleReaderDialog(
                                 OutlinedTextField(
                                     value = newCommentText,
                                     onValueChange = { newCommentText = it },
-                                    placeholder = { Text("Write a comment with links (e.g. check https://... or #tag)...", fontSize = 13.sp) },
+                                    placeholder = { Text("Write a comment with links or #tag (long press word to format)...", fontSize = 13.sp) },
                                     minLines = 2,
                                     maxLines = 4,
                                     shape = RoundedCornerShape(10.dp),
@@ -626,7 +777,7 @@ fun ArticleReaderDialog(
                                                 }
                                             }
 
-                                            // Hyperlinkable Text Composable (Renders clickable URLs and #hashtags)
+                                            // Hyperlinkable & Formattable Comment Text
                                             HyperlinkText(
                                                 text = comment.text,
                                                 modifier = Modifier.fillMaxWidth(),
@@ -634,6 +785,9 @@ fun ArticleReaderDialog(
                                                 onHashtagClick = { tag ->
                                                     onHashtagClick(tag)
                                                     onDismiss()
+                                                },
+                                                onTextFormatted = { updatedCommentText ->
+                                                    onUpdateComment(comment.id, updatedCommentText)
                                                 }
                                             )
                                         }
