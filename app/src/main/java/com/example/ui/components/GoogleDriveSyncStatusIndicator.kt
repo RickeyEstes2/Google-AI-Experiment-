@@ -82,21 +82,21 @@ fun GoogleDriveSyncStatusCard(
         formatRelativeTime(lastSyncTime)
     }
 
-    // Modern M3 color tokens
+    // Modern M3 color tokens (Light Grey & Black Text)
     val statusColor = when {
-        !isDriveEnabled -> Color(0xFF64748B)
-        syncStatus == SyncStatus.SYNCING -> Color(0xFF0284C7)
+        !isDriveEnabled -> Color(0xFF6B7280)
+        syncStatus == SyncStatus.SYNCING -> Color(0xFF111827)
         syncStatus == SyncStatus.ERROR -> Color(0xFFDC2626)
         pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Color(0xFFD97706)
-        else -> Color(0xFF059669)
+        else -> Color(0xFF111827)
     }
 
     val statusBadgeBg = when {
         !isDriveEnabled -> MaterialTheme.colorScheme.surfaceVariant
-        syncStatus == SyncStatus.SYNCING -> Color(0xFFE0F2FE)
+        syncStatus == SyncStatus.SYNCING -> Color(0xFFE5E7EB)
         syncStatus == SyncStatus.ERROR -> Color(0xFFFEE2E2)
         pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Color(0xFFFEF3C7)
-        else -> Color(0xFFD1FAE5)
+        else -> Color(0xFFE5E7EB)
     }
 
     val statusIcon: ImageVector = when {
@@ -478,10 +478,10 @@ fun GoogleDriveSyncHeaderChip(
     )
 
     val (chipBg, chipContentColor, label) = when {
-        syncStatus == SyncStatus.SYNCING -> Triple(Color(0xFFE0F2FE), Color(0xFF0284C7), "Syncing")
+        syncStatus == SyncStatus.SYNCING -> Triple(Color(0xFFE5E7EB), Color(0xFF111827), "Syncing")
         syncStatus == SyncStatus.ERROR -> Triple(Color(0xFFFEE2E2), Color(0xFFDC2626), "Error")
         pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Triple(Color(0xFFFEF3C7), Color(0xFFD97706), "Pending")
-        else -> Triple(Color(0xFFD1FAE5), Color(0xFF059669), "Synced")
+        else -> Triple(Color(0xFFE5E7EB), Color(0xFF111827), "Synced")
     }
 
     Surface(

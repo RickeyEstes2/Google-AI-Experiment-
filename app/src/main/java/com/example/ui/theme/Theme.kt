@@ -1,64 +1,44 @@
 package com.example.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF38BDF8),
-    onPrimary = Color(0xFF0C4A6E),
-    primaryContainer = Color(0xFF0369A1),
-    onPrimaryContainer = Color(0xFFE0F2FE),
-    secondary = Color(0xFF818CF8),
-    onSecondary = Color(0xFF1E1B4B),
-    secondaryContainer = Color(0xFF3730A3),
-    onSecondaryContainer = Color(0xFFEEF2FF),
-    tertiary = Color(0xFF34D399),
-    background = DarkBackground,
-    onBackground = DarkTextPrimary,
-    surface = DarkSurface,
-    onSurface = DarkTextPrimary,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkTextSecondary,
-    outline = DarkBorder
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = MastermindPrimary,
+// Light Grey Background & Black Text Color Scheme
+private val LightGreyColorScheme = lightColorScheme(
+    primary = AppPrimary,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE0F2FE),
-    onPrimaryContainer = Color(0xFF0369A1),
-    secondary = MastermindSecondary,
+    primaryContainer = AppSurfaceVariant,
+    onPrimaryContainer = AppTextPrimary,
+    secondary = AppSecondary,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFEEF2FF),
-    onSecondaryContainer = Color(0xFF3730A3),
-    tertiary = Color(0xFF059669),
-    background = LightBackground,
-    onBackground = LightTextPrimary,
-    surface = LightSurface,
-    onSurface = LightTextPrimary,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightTextSecondary,
-    outline = LightBorder
+    secondaryContainer = AppSurfaceVariant,
+    onSecondaryContainer = AppTextPrimary,
+    tertiary = AppTertiary,
+    onTertiary = Color.White,
+    background = AppBackground,
+    onBackground = AppTextPrimary,
+    surface = AppSurface,
+    onSurface = AppTextPrimary,
+    surfaceVariant = AppSurfaceVariant,
+    onSurfaceVariant = AppTextSecondary,
+    outline = AppBorder,
+    outlineVariant = AppBorder
 )
 
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Keep consistent branding colors
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = LightGreyColorScheme,
         typography = Typography,
         content = content
     )
 }
+

@@ -13,19 +13,20 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#0F172A" />
-                <item android:offset="0.5" android:color="#1E1B4B" />
-                <item android:offset="1.0" android:color="#0284C7" />
+                <item android:offset="0.0" android:color="#F3F4F6" />
+                <item android:offset="0.5" android:color="#E5E7EB" />
+                <item android:offset="1.0" android:color="#D1D5DB" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Geometric tech accents -->
+    <!-- Geometric accents -->
     <path
-        android:strokeColor="#2038BDF8"
+        android:strokeColor="#20000000"
         android:strokeWidth="1"
         android:pathData="M18,18 L90,18 L90,90 L18,90 Z" />
     <path
-        android:strokeColor="#1538BDF8"
+        android:strokeColor="#15000000"
         android:strokeWidth="1"
         android:pathData="M27,27 L81,27 L81,81 L27,81 Z" />
 </vector>
+

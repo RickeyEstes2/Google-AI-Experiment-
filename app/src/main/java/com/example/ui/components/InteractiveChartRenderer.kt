@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.ui.theme.AppSurface
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -140,14 +141,14 @@ sealed class ChartBlockItem {
 }
 
 val CHART_PALETTE = listOf(
-    Color(0xFF3B82F6), // Blue
+    Color(0xFF1F2937), // Dark Slate
     Color(0xFF10B981), // Emerald
     Color(0xFFF59E0B), // Amber
     Color(0xFFEC4899), // Pink
     Color(0xFF8B5CF6), // Purple
-    Color(0xFF06B6D4), // Cyan
+    Color(0xFF0D9488), // Teal
     Color(0xFFF97316), // Orange
-    Color(0xFF6366F1)  // Indigo
+    Color(0xFF4B5563)  // Neutral Grey
 )
 
 @Composable
@@ -462,7 +463,7 @@ private fun LineChartCanvas(
             drawPath(
                 path = areaPath,
                 brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF3B82F6).copy(alpha = 0.45f), Color(0xFF3B82F6).copy(alpha = 0.05f))
+                    colors = listOf(Color(0xFF1F2937).copy(alpha = 0.25f), Color(0xFF1F2937).copy(alpha = 0.02f))
                 )
             )
         }
@@ -470,7 +471,7 @@ private fun LineChartCanvas(
         // Draw Line Stroke
         drawPath(
             path = path,
-            color = Color(0xFF2563EB),
+            color = Color(0xFF111827),
             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
 
@@ -558,7 +559,7 @@ private fun PieChartCanvas(
 
         // Cut out center for Donut hole
         drawCircle(
-            color = Color(0xFF1E293B).copy(alpha = 0.9f),
+            color = AppSurface,
             radius = innerRadius,
             center = center
         )

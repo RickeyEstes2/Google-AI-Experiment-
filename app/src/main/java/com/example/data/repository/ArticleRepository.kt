@@ -250,7 +250,7 @@ class ArticleRepository(
                 category = "Chrome",
                 hashtagsJson = "#chrome,#browser,#google,#web",
                 summaryEncrypted = CryptoManager.encrypt("Google Chrome is a fast, simple, and secure web browser built for modern devices with tab sync and privacy controls."),
-                contentEncrypted = CryptoManager.encrypt("Personal note: Useful link for [Chrome Extensions](https://developer.chrome.com) and cross-device sync features. [Try it now]{font=serif;size=lg;color=#2563EB;bg=#FEF08A;url=https://www.google.com/chrome/}"),
+                contentEncrypted = CryptoManager.encrypt("Personal note: Useful link for [Chrome Extensions](https://developer.chrome.com) and cross-device sync features. [Try it now]{font=serif;size=lg;color=#000000;bg=#E5E7EB;url=https://www.google.com/chrome/}"),
                 commentsJson = """
                     [
                         {

@@ -61,21 +61,21 @@ data class ColorOption(val name: String, val color: Color, val hex: String)
 
 val AVAILABLE_TEXT_COLORS = listOf(
     ColorOption("Default", Color.Unspecified, ""),
-    ColorOption("Primary", Color(0xFF2563EB), "#2563EB"),
+    ColorOption("Black", Color(0xFF000000), "#000000"),
+    ColorOption("Dark Slate", Color(0xFF1F2937), "#1F2937"),
+    ColorOption("Medium Grey", Color(0xFF4B5563), "#4B5563"),
     ColorOption("Emerald", Color(0xFF059669), "#059669"),
     ColorOption("Rose", Color(0xFFE11D48), "#E11D48"),
     ColorOption("Amber", Color(0xFFD97706), "#D97706"),
-    ColorOption("Purple", Color(0xFF7C3AED), "#7C3AED"),
-    ColorOption("Teal", Color(0xFF0D9488), "#0D9488"),
-    ColorOption("Dark Gray", Color(0xFF1F2937), "#1F2937")
+    ColorOption("Purple", Color(0xFF7C3AED), "#7C3AED")
 )
 
 val AVAILABLE_HIGHLIGHT_COLORS = listOf(
     ColorOption("None", Color.Transparent, ""),
+    ColorOption("Light Grey", Color(0xFFE5E7EB), "#E5E7EB"),
     ColorOption("Yellow", Color(0xFFFEF08A), "#FEF08A"),
     ColorOption("Light Green", Color(0xFFBBF7D0), "#BBF7D0"),
     ColorOption("Light Pink", Color(0xFFFECDD3), "#FECDD3"),
-    ColorOption("Light Blue", Color(0xFFBAE6FD), "#BAE6FD"),
     ColorOption("Light Purple", Color(0xFFE9D5FF), "#E9D5FF"),
     ColorOption("Light Orange", Color(0xFFFFEDD5), "#FFEDD5")
 )
@@ -95,8 +95,8 @@ object RichTextEngine {
     fun buildAnnotated(
         rawText: String,
         defaultStyle: TextStyle = TextStyle.Default,
-        primaryLinkColor: Color = Color(0xFF2563EB),
-        hashtagColor: Color = Color(0xFF059669)
+        primaryLinkColor: Color = Color(0xFF111827),
+        hashtagColor: Color = Color(0xFF374151)
     ): AnnotatedString {
         return buildAnnotatedString {
             // First replace rich spans and standard links

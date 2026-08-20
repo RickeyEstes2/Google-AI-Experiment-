@@ -173,7 +173,7 @@ fun InteractiveVennCard(
     var selectedSectionName by remember { mutableStateOf<String?>(null) }
     var selectedSectionItems by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    val colorA = Color(0xFF3B82F6) // Blue
+    val colorA = Color(0xFF1F2937) // Dark Slate / Charcoal
     val colorB = Color(0xFF10B981) // Green
     val colorC = Color(0xFFF59E0B) // Amber
     val colorOverlap = Color(0xFF8B5CF6) // Purple
