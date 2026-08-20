@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -33,8 +32,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Visual Sync Status Indicator for Google Drive integration.
- * Reflects whether the local database is currently in sync with the selected Google Drive folder.
+ * Modern, polished Visual Sync Status Indicator for Google Drive integration.
+ * Compact, responsive, and adheres to Material Design 3 guidelines.
  */
 @Composable
 fun GoogleDriveSyncStatusCard(
@@ -51,6 +50,7 @@ fun GoogleDriveSyncStatusCard(
     val driveFolders by syncManager.driveFolders.collectAsState()
     val configuredServers by syncManager.configuredServers.collectAsState()
     val autoSyncEnabled by syncManager.autoSyncEnabled.collectAsState()
+    val syncInterval by syncManager.syncIntervalSeconds.collectAsState()
 
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -58,7 +58,6 @@ fun GoogleDriveSyncStatusCard(
         configuredServers.find { it.providerId == CloudProvider.GOOGLE_DRIVE.id }
     }
     val isDriveEnabled = gDriveServer?.isEnabled ?: true
-    val accountEmail = gDriveServer?.authAccount?.ifBlank { "lookingup2theskytemp@gmail.com" } ?: "lookingup2theskytemp@gmail.com"
 
     val selectedFolder = remember(driveFolders, driveSettings) {
         driveFolders.find { it.id == driveSettings.selectedFolderId }
@@ -73,43 +72,31 @@ fun GoogleDriveSyncStatusCard(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
+            animation = tween(1100, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "spin_angle"
     )
 
-    // Pulse animation for active sync dot
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse_alpha"
-    )
-
-    // Formatted relative timestamp
     val relativeSyncText = remember(lastSyncTime, syncStatus) {
         formatRelativeTime(lastSyncTime)
     }
 
-    // Color definitions based on Google Drive sync state
+    // Modern M3 color tokens
     val statusColor = when {
-        !isDriveEnabled -> Color(0xFF94A3B8)
-        syncStatus == SyncStatus.SYNCING -> Color(0xFF0284C7) // Sky Blue
-        syncStatus == SyncStatus.ERROR -> Color(0xFFEF4444) // Red
-        pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Color(0xFFF59E0B) // Amber
-        else -> Color(0xFF10B981) // Emerald Green
+        !isDriveEnabled -> Color(0xFF64748B)
+        syncStatus == SyncStatus.SYNCING -> Color(0xFF0284C7)
+        syncStatus == SyncStatus.ERROR -> Color(0xFFDC2626)
+        pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Color(0xFFD97706)
+        else -> Color(0xFF059669)
     }
 
-    val statusContainerColor = when {
-        !isDriveEnabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val statusBadgeBg = when {
+        !isDriveEnabled -> MaterialTheme.colorScheme.surfaceVariant
         syncStatus == SyncStatus.SYNCING -> Color(0xFFE0F2FE)
         syncStatus == SyncStatus.ERROR -> Color(0xFFFEE2E2)
         pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Color(0xFFFEF3C7)
-        else -> Color(0xFFDCFCE7)
+        else -> Color(0xFFD1FAE5)
     }
 
     val statusIcon: ImageVector = when {
@@ -117,59 +104,54 @@ fun GoogleDriveSyncStatusCard(
         syncStatus == SyncStatus.SYNCING -> Icons.Default.Sync
         syncStatus == SyncStatus.ERROR -> Icons.Default.Warning
         pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Icons.Default.CloudUpload
-        else -> Icons.Default.CheckCircle
+        else -> Icons.Default.CloudDone
     }
 
-    val statusTitle = when {
-        !isDriveEnabled -> "Google Drive Sync Paused"
-        syncStatus == SyncStatus.SYNCING -> "Syncing with Google Drive..."
-        syncStatus == SyncStatus.ERROR -> "Google Drive Sync Warning"
-        pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> "$pendingChanges Unsynced Local Change${if (pendingChanges > 1) "s" else ""}"
-        else -> "Database in Sync with Google Drive"
+    val statusLabel = when {
+        !isDriveEnabled -> "Sync Paused"
+        syncStatus == SyncStatus.SYNCING -> "Syncing..."
+        syncStatus == SyncStatus.ERROR -> "Sync Error"
+        pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> "$pendingChanges Pending"
+        else -> "In Sync"
     }
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.5.dp, statusColor.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        shadowElevation = 1.dp,
         modifier = modifier
             .fillMaxWidth()
             .testTag("gdrive_sync_status_bar")
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            // Main Status Row
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Main Compact Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left side: Icon + Title + Target Folder
+                // Left: Google Drive Icon & Folder Info
                 Row(
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Status Badge Icon with glowing container
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = statusContainerColor,
-                        modifier = Modifier.size(40.dp)
+                        shape = CircleShape,
+                        color = statusBadgeBg,
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = statusIcon,
-                                contentDescription = statusTitle,
+                                contentDescription = statusLabel,
                                 tint = statusColor,
                                 modifier = Modifier
-                                    .size(22.dp)
+                                    .size(18.dp)
                                     .then(
                                         if (syncStatus == SyncStatus.SYNCING) Modifier.rotate(spinAngle)
                                         else Modifier
@@ -178,103 +160,87 @@ fun GoogleDriveSyncStatusCard(
                         }
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // Pulsing Dot
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (syncStatus == SyncStatus.SYNCING) statusColor.copy(alpha = pulseAlpha)
-                                        else statusColor
-                                    )
-                            )
-
                             Text(
-                                text = statusTitle,
+                                text = "Google Drive",
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 13.5.sp
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             )
+
+                            // Status Chip
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = statusBadgeBg,
+                                modifier = Modifier.padding(start = 2.dp)
+                            ) {
+                                Text(
+                                    text = statusLabel,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 10.5.sp,
+                                        color = statusColor
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
 
                         // Target folder breadcrumb
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Folder,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = folderPath,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.5.sp,
-                                    fontFamily = FontFamily.Monospace
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        Text(
+                            text = "📁 $folderName • $relativeSyncText",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 
-                // Right side: Quick Action Button ("Sync Now" or Spinner)
+                // Right: Quick Sync Button & Expand Chevron
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilledTonalButton(
+                    IconButton(
                         onClick = { syncManager.triggerSyncNow() },
-                        enabled = syncStatus != SyncStatus.SYNCING,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = if (pendingChanges > 0) Color(0xFFFEF3C7) else MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = if (pendingChanges > 0) Color(0xFF92400E) else MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        modifier = Modifier.testTag("gdrive_sync_now_button")
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("gdrive_quick_sync_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Sync,
                             contentDescription = "Sync Now",
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .size(14.dp)
+                                .size(18.dp)
                                 .then(
                                     if (syncStatus == SyncStatus.SYNCING) Modifier.rotate(spinAngle)
                                     else Modifier
                                 )
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (syncStatus == SyncStatus.SYNCING) "Syncing..." else if (pendingChanges > 0) "Sync Now" else "Sync",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
 
-                    // Expand / Collapse Chevron Button
                     IconButton(
                         onClick = { isExpanded = !isExpanded },
                         modifier = Modifier
                             .size(32.dp)
-                            .testTag("gdrive_sync_expand_button")
+                            .testTag("gdrive_sync_expand_toggle")
                     ) {
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isExpanded) "Show Less" else "Show Details",
+                            contentDescription = if (isExpanded) "Collapse" else "Expand",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
@@ -282,57 +248,7 @@ fun GoogleDriveSyncStatusCard(
                 }
             }
 
-            // Sync metrics summary row (always visible)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left: Last Sync Timestamp
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Schedule,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Text(
-                        text = "Last Synced: $relativeSyncText",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // Right: Target database file badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    ) {
-                        Text(
-                            text = driveSettings.syncFileName,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-            }
-
-            // Expanded In-Depth Sync & Google Drive Folder Inspection
+            // Expanded Details Panel
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -341,66 +257,84 @@ fun GoogleDriveSyncStatusCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        thickness = 1.dp
-                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                    // 4 Key Metric Tiles
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Tile 1: Database Records
-                        MetricTile(
-                            title = "Local Database",
-                            value = "$totalLocalArticles Articles",
-                            subtext = "SQLite / Room",
-                            icon = Icons.Default.Storage,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        // Tile 2: Target Drive Folder
-                        MetricTile(
-                            title = "Drive Folder",
-                            value = folderName,
-                            subtext = "${selectedFolder?.fileCount ?: 24} cloud files",
-                            icon = Icons.Default.FolderSpecial,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Tile 3: Google Account
-                        MetricTile(
-                            title = "OAuth Account",
-                            value = accountEmail.takeWhile { it != '@' },
-                            subtext = accountEmail,
-                            icon = Icons.Default.AccountCircle,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        // Tile 4: Sync Protocol
-                        MetricTile(
-                            title = "API Protocol",
-                            value = "Drive REST v3",
-                            subtext = if (driveSettings.enableAES256Encryption) "AES-256 Enabled" else "JSON Mirror",
-                            icon = Icons.Default.Security,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // Auto-Sync Control & Cadence Row
+                    // Destination Path & File Card
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (autoSyncEnabled) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, if (autoSyncEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "DESTINATION FOLDER",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+
+                                TextButton(
+                                    onClick = onOpenFolderSettings,
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                    modifier = Modifier.height(24.dp)
+                                ) {
+                                    Text("Change Folder", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+
+                            Text(
+                                text = folderPath,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "File: ${driveSettings.syncFileName}",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Text(
+                                    text = "$totalLocalArticles articles in DB",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // Auto-sync Switch & Cadence Row
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -412,32 +346,21 @@ fun GoogleDriveSyncStatusCard(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = if (autoSyncEnabled) Icons.Default.SyncLock else Icons.Default.SyncDisabled,
-                                        contentDescription = null,
-                                        tint = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(18.dp)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Auto-Sync with Google Drive",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 12.5.sp
+                                        )
                                     )
-                                    Column {
-                                        Text(
-                                            text = if (autoSyncEnabled) "Google Drive Auto-Sync: ACTIVE" else "Google Drive Auto-Sync: PAUSED",
-                                            style = MaterialTheme.typography.labelMedium.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                            )
+                                    Text(
+                                        text = "Syncs immediately on every edit & at set intervals",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 10.5.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        Text(
-                                            text = if (autoSyncEnabled) "Syncs on every database edit & every ${syncManager.syncIntervalSeconds.collectAsState().value}s" else "Manual sync only",
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                fontSize = 10.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        )
-                                    }
+                                    )
                                 }
 
                                 Switch(
@@ -454,21 +377,20 @@ fun GoogleDriveSyncStatusCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Sync Cadence:",
+                                        text = "Interval:",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Medium
                                     )
 
-                                    val syncInterval by syncManager.syncIntervalSeconds.collectAsState()
                                     listOf(5, 15, 30, 60).forEach { seconds ->
                                         val isSelected = syncInterval == seconds
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                             border = BorderStroke(
                                                 0.5.dp,
-                                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                                             ),
                                             modifier = Modifier.clickable { syncManager.setSyncInterval(seconds) }
                                         ) {
@@ -477,7 +399,7 @@ fun GoogleDriveSyncStatusCard(
                                                 fontSize = 10.5.sp,
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                             )
                                         }
                                     }
@@ -486,33 +408,44 @@ fun GoogleDriveSyncStatusCard(
                         }
                     }
 
-                    // Action buttons: Folder Settings & Full Cloud Sync
+                    // Action Buttons Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
                             onClick = onOpenFolderSettings,
-                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
                                 .weight(1f)
-                                .testTag("gdrive_open_folder_settings_button")
+                                .height(38.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp)
                         ) {
                             Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Manage Folders", fontSize = 11.5.sp)
+                            Text("Drive Folders", fontSize = 12.sp)
                         }
 
-                        OutlinedButton(
-                            onClick = onOpenCloudSync,
-                            shape = RoundedCornerShape(10.dp),
+                        Button(
+                            onClick = { syncManager.triggerSyncNow() },
                             modifier = Modifier
                                 .weight(1f)
-                                .testTag("gdrive_open_cloud_sync_button")
+                                .height(38.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp)
                         ) {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Icon(
+                                Icons.Default.Sync,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .then(
+                                        if (syncStatus == SyncStatus.SYNCING) Modifier.rotate(spinAngle)
+                                        else Modifier
+                                    )
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("All Cloud Servers", fontSize = 11.5.sp)
+                            Text(if (syncStatus == SyncStatus.SYNCING) "Syncing..." else "Sync Now", fontSize = 12.sp)
                         }
                     }
                 }
@@ -522,8 +455,7 @@ fun GoogleDriveSyncStatusCard(
 }
 
 /**
- * Compact Top Bar Header Pill for Google Drive Sync.
- * Perfect for placement in navigation headers and toolbars.
+ * Compact Top App Bar Status Pill for Google Drive Sync
  */
 @Composable
 fun GoogleDriveSyncHeaderChip(
@@ -533,15 +465,7 @@ fun GoogleDriveSyncHeaderChip(
 ) {
     val syncStatus by syncManager.syncStatus.collectAsState()
     val pendingChanges by syncManager.pendingChanges.collectAsState()
-    val driveSettings by syncManager.driveSyncSettings.collectAsState()
-    val driveFolders by syncManager.driveFolders.collectAsState()
 
-    val selectedFolder = remember(driveFolders, driveSettings) {
-        driveFolders.find { it.id == driveSettings.selectedFolderId } ?: driveFolders.firstOrNull()
-    }
-    val folderName = selectedFolder?.name ?: "Mastermind_Database"
-
-    // Animation for spinning icon
     val infiniteTransition = rememberInfiniteTransition(label = "header_sync_spin")
     val spinAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -550,48 +474,19 @@ fun GoogleDriveSyncHeaderChip(
             animation = tween(1200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "header_spin"
+        label = "spin"
     )
 
-    val (chipBg, chipBorder, chipContentColor, statusLabel) = when {
-        syncStatus == SyncStatus.SYNCING -> {
-            Quad(
-                Color(0xFFE0F2FE),
-                Color(0xFF38BDF8),
-                Color(0xFF0369A1),
-                "Syncing..."
-            )
-        }
-        pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> {
-            Quad(
-                Color(0xFFFEF3C7),
-                Color(0xFFFBBF24),
-                Color(0xFFB45309),
-                "$pendingChanges pending"
-            )
-        }
-        syncStatus == SyncStatus.ERROR -> {
-            Quad(
-                Color(0xFFFEE2E2),
-                Color(0xFFF87171),
-                Color(0xFFB91C1C),
-                "Sync Alert"
-            )
-        }
-        else -> {
-            Quad(
-                Color(0xFFDCFCE7),
-                Color(0xFF4ADE80),
-                Color(0xFF15803D),
-                "Drive In Sync"
-            )
-        }
+    val (chipBg, chipContentColor, label) = when {
+        syncStatus == SyncStatus.SYNCING -> Triple(Color(0xFFE0F2FE), Color(0xFF0284C7), "Syncing")
+        syncStatus == SyncStatus.ERROR -> Triple(Color(0xFFFEE2E2), Color(0xFFDC2626), "Error")
+        pendingChanges > 0 || syncStatus == SyncStatus.PENDING -> Triple(Color(0xFFFEF3C7), Color(0xFFD97706), "Pending")
+        else -> Triple(Color(0xFFD1FAE5), Color(0xFF059669), "Synced")
     }
 
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = chipBg,
-        border = BorderStroke(1.dp, chipBorder.copy(alpha = 0.6f)),
         modifier = modifier
             .testTag("gdrive_sync_header_chip")
             .clickable { onClick() }
@@ -599,123 +494,42 @@ fun GoogleDriveSyncHeaderChip(
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
-                imageVector = when {
-                    syncStatus == SyncStatus.SYNCING -> Icons.Default.Sync
-                    pendingChanges > 0 -> Icons.Default.CloudUpload
-                    syncStatus == SyncStatus.ERROR -> Icons.Default.Warning
-                    else -> Icons.Default.CloudDone
-                },
-                contentDescription = statusLabel,
+                imageVector = if (syncStatus == SyncStatus.SYNCING) Icons.Default.Sync else Icons.Default.CloudDone,
+                contentDescription = label,
                 tint = chipContentColor,
                 modifier = Modifier
-                    .size(15.dp)
-                    .then(
-                        if (syncStatus == SyncStatus.SYNCING) Modifier.rotate(spinAngle)
-                        else Modifier
-                    )
+                    .size(13.dp)
+                    .then(if (syncStatus == SyncStatus.SYNCING) Modifier.rotate(spinAngle) else Modifier)
             )
-
             Text(
-                text = statusLabel,
+                text = "Drive $label",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = chipContentColor,
-                    fontSize = 10.5.sp
+                    fontSize = 11.sp,
+                    color = chipContentColor
                 )
             )
         }
     }
 }
 
-/**
- * Metric tile helper for expanded sync status inspection.
- */
-@Composable
-private fun MetricTile(
-    title: String,
-    value: String,
-    subtext: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-        modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                modifier = Modifier.size(28.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = subtext,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        fontSize = 9.sp
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
-
 private fun formatRelativeTime(timestamp: Long): String {
-    if (timestamp <= 0) return "Never"
+    if (timestamp <= 0) return "Never synced"
     val diff = System.currentTimeMillis() - timestamp
     return when {
         diff < 10_000L -> "Just now"
         diff < 60_000L -> "${diff / 1000}s ago"
         diff < 3600_000L -> "${diff / 60_000}m ago"
         diff < 86400_000L -> {
-            val formatter = SimpleDateFormat("h:mm a", Locale.getDefault())
-            "Today at ${formatter.format(Date(timestamp))}"
+            val df = SimpleDateFormat("h:mm a", Locale.getDefault())
+            "Today at ${df.format(Date(timestamp))}"
         }
         else -> {
-            val formatter = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
-            formatter.format(Date(timestamp))
+            val df = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
+            df.format(Date(timestamp))
         }
     }
 }

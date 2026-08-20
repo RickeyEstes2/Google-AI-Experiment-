@@ -233,19 +233,22 @@ fun ArticleCard(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.EditNote,
                             contentDescription = "Notes",
                             tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier
+                                .size(16.dp)
+                                .padding(top = 2.dp)
                         )
                         HyperlinkText(
-                            text = article.notes.take(160),
+                            text = article.notes,
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 12.sp
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp
                             ),
                             onHashtagClick = onHashtagClick
                         )
