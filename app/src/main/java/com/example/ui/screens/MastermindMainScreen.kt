@@ -27,6 +27,9 @@ import com.example.ui.components.ArticleCard
 import com.example.ui.components.ArticleReaderDialog
 import com.example.ui.components.CloudSyncDialog
 import com.example.ui.components.EditArticleDialog
+import com.example.ui.components.GoogleDriveFolderSettingsDialog
+import com.example.ui.components.GoogleDriveSyncHeaderChip
+import com.example.ui.components.GoogleDriveSyncStatusCard
 import com.example.ui.components.LinkPostPickerDialog
 import com.example.ui.viewmodel.LinkFilter
 import com.example.ui.viewmodel.MastermindViewModel
@@ -54,6 +57,7 @@ fun MastermindMainScreen(
     val targetArticleForLinking by viewModel.targetArticleForLinking.collectAsState()
     val isLinkPickerOpen by viewModel.isLinkPickerOpen.collectAsState()
     val isCloudSyncDialogOpen by viewModel.isCloudSyncDialogOpen.collectAsState()
+    val isGoogleDriveFolderSettingsOpen by viewModel.isGoogleDriveFolderSettingsOpen.collectAsState()
     val syncManager = viewModel.cloudSyncManager
     val syncStatus by syncManager.syncStatus.collectAsState()
     val autoSyncEnabled by syncManager.autoSyncEnabled.collectAsState()
@@ -134,17 +138,19 @@ fun MastermindMainScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Cloud Auto-Sync Status Chip
+                            // Google Drive Sync Header Status Chip
+                            GoogleDriveSyncHeaderChip(
+                                syncManager = syncManager,
+                                onClick = { viewModel.openGoogleDriveFolderSettings() }
+                            )
+
+                            // Google Drive Target Folder Settings Button
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (syncStatus == SyncStatus.SYNCING) {
-                                    MaterialTheme.colorScheme.tertiaryContainer
-                                } else if (autoSyncEnabled) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                                modifier = Modifier.clickable { viewModel.openCloudSyncDialog() }
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                modifier = Modifier
+                                    .testTag("gdrive_folder_settings_header_button")
+                                    .clickable { viewModel.openGoogleDriveFolderSettings() }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -152,22 +158,16 @@ fun MastermindMainScreen(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (syncStatus == SyncStatus.SYNCING) {
-                                            Icons.Default.Sync
-                                        } else if (autoSyncEnabled) {
-                                            Icons.Default.CloudDone
-                                        } else {
-                                            Icons.Default.CloudOff
-                                        },
-                                        contentDescription = "Cloud Auto Sync",
-                                        tint = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        imageVector = Icons.Default.FolderSpecial,
+                                        contentDescription = "Google Drive Target Folders",
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
                                         modifier = Modifier.size(15.dp)
                                     )
                                     Text(
-                                        text = if (syncStatus == SyncStatus.SYNCING) "Syncing..." else "Cloud Sync",
+                                        text = "Folders",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
-                                            color = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer
                                         )
                                     )
                                 }
@@ -393,6 +393,15 @@ fun MastermindMainScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
+            // Visual Sync Status Indicator for Google Drive
+            GoogleDriveSyncStatusCard(
+                syncManager = syncManager,
+                onOpenFolderSettings = { viewModel.openGoogleDriveFolderSettings() },
+                onOpenCloudSync = { viewModel.openCloudSyncDialog() },
+                totalLocalArticles = allArticlesList.size,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+
             // Main List or Empty State
             if (articles.isEmpty()) {
                 Box(
@@ -579,7 +588,24 @@ fun MastermindMainScreen(
             onCreateSnapshot = { note -> viewModel.createCloudSnapshot(note) },
             onRestoreSnapshot = { snapshot -> viewModel.restoreCloudSnapshot(snapshot) },
             onExportBackup = { viewModel.exportCloudBackup() },
-            onImportBackup = { json -> viewModel.importCloudBackup(json) }
+            onImportBackup = { json -> viewModel.importCloudBackup(json) },
+            onOpenGoogleDriveFolderSettings = {
+                viewModel.closeCloudSyncDialog()
+                viewModel.openGoogleDriveFolderSettings()
+            }
+        )
+    }
+
+    // Google Drive Specific Folder Selection & Settings Dialog
+    if (isGoogleDriveFolderSettingsOpen) {
+        GoogleDriveFolderSettingsDialog(
+            syncManager = viewModel.cloudSyncManager,
+            totalLocalArticles = allArticlesList.size,
+            onDismiss = { viewModel.closeGoogleDriveFolderSettings() },
+            onOpenFullCloudSync = {
+                viewModel.closeGoogleDriveFolderSettings()
+                viewModel.openCloudSyncDialog()
+            }
         )
     }
 }

@@ -32,12 +32,24 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
     private val _isCloudSyncDialogOpen = MutableStateFlow(false)
     val isCloudSyncDialogOpen: StateFlow<Boolean> = _isCloudSyncDialogOpen.asStateFlow()
 
+    // Google Drive Specific Folder Settings Dialog State
+    private val _isGoogleDriveFolderSettingsOpen = MutableStateFlow(false)
+    val isGoogleDriveFolderSettingsOpen: StateFlow<Boolean> = _isGoogleDriveFolderSettingsOpen.asStateFlow()
+
     fun openCloudSyncDialog() {
         _isCloudSyncDialogOpen.value = true
     }
 
     fun closeCloudSyncDialog() {
         _isCloudSyncDialogOpen.value = false
+    }
+
+    fun openGoogleDriveFolderSettings() {
+        _isGoogleDriveFolderSettingsOpen.value = true
+    }
+
+    fun closeGoogleDriveFolderSettings() {
+        _isGoogleDriveFolderSettingsOpen.value = false
     }
 
     fun triggerCloudSyncNow() {

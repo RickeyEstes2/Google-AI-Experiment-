@@ -28,6 +28,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -46,7 +48,8 @@ fun CloudSyncDialog(
     onCreateSnapshot: (note: String) -> Unit,
     onRestoreSnapshot: (snapshot: CloudSnapshot) -> Unit,
     onExportBackup: () -> String,
-    onImportBackup: (json: String) -> Unit
+    onImportBackup: (json: String) -> Unit,
+    onOpenGoogleDriveFolderSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -373,51 +376,101 @@ fun CloudSyncDialog(
                                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
+                                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.FolderOpen,
-                                                    contentDescription = "Target Folder",
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Column {
-                                                    Text(
-                                                        text = "Auto-Sync Folder:",
-                                                        fontSize = 9.5.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.FolderOpen,
+                                                        contentDescription = "Target Folder",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Column {
+                                                        Text(
+                                                            text = "Auto-Sync Target Folder:",
+                                                            fontSize = 9.5.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                        Text(
+                                                            text = server.targetFolder,
+                                                            fontSize = 11.sp,
+                                                            fontFamily = FontFamily.Monospace,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+
+                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    if (server.providerId == CloudProvider.GOOGLE_DRIVE.id) {
+                                                        FilledTonalButton(
+                                                            onClick = onOpenGoogleDriveFolderSettings,
+                                                            shape = RoundedCornerShape(8.dp),
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                            modifier = Modifier.height(28.dp)
+                                                        ) {
+                                                            Icon(Icons.Default.FolderSpecial, contentDescription = null, modifier = Modifier.size(11.dp))
+                                                            Spacer(modifier = Modifier.width(3.dp))
+                                                            Text("Choose Folders", fontSize = 10.sp)
+                                                        }
+                                                    }
+
+                                                    FilledTonalButton(
+                                                        onClick = { editingServerConfig = server },
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                        modifier = Modifier.height(28.dp)
+                                                    ) {
+                                                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(11.dp))
+                                                        Spacer(modifier = Modifier.width(3.dp))
+                                                        Text("Folder & Auth", fontSize = 10.sp)
+                                                    }
+                                                }
+                                            }
+
+                                            // Account Connection details banner
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = if (server.isAccountConnected || server.authAccount.isNotBlank()) Icons.Default.Lock else Icons.Default.LockOpen,
+                                                        contentDescription = null,
+                                                        tint = if (server.isAccountConnected || server.authAccount.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                                        modifier = Modifier.size(12.dp)
                                                     )
                                                     Text(
-                                                        text = server.targetFolder,
-                                                        fontSize = 11.5.sp,
-                                                        fontFamily = FontFamily.Monospace,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        text = if (server.authAccount.isNotBlank()) "Account: ${server.authAccount}" else "No account connected",
+                                                        fontSize = 10.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         maxLines = 1,
                                                         overflow = TextOverflow.Ellipsis
                                                     )
                                                 }
-                                            }
 
-                                            FilledTonalButton(
-                                                onClick = { editingServerConfig = server },
-                                                shape = RoundedCornerShape(8.dp),
-                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                                modifier = Modifier.height(30.dp)
-                                            ) {
-                                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(12.dp))
-                                                Spacer(modifier = Modifier.width(3.dp))
-                                                Text("Change Folder", fontSize = 10.5.sp)
+                                                if (server.authAccount.isNotBlank()) {
+                                                    Text(
+                                                        text = if (server.authSecretOrPassword.isNotBlank()) "●●●●●● (Encrypted)" else "OAuth 2.0 Token",
+                                                        fontSize = 9.5.sp,
+                                                        fontFamily = FontFamily.Monospace,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -731,6 +784,8 @@ fun CloudSyncDialog(
         var folderInput by remember { mutableStateOf(targetServer.targetFolder) }
         var serverUrlInput by remember { mutableStateOf(targetServer.serverUrl) }
         var accountInput by remember { mutableStateOf(targetServer.authAccount) }
+        var passwordInput by remember { mutableStateOf(targetServer.authSecretOrPassword) }
+        var passwordVisible by remember { mutableStateOf(false) }
         var selectedDirection by remember {
             mutableStateOf(
                 try {
@@ -782,6 +837,130 @@ fun CloudSyncDialog(
                         }
                     }
 
+                    // Account & Authentication Section
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (targetServer.isAccountConnected || targetServer.authAccount.isNotBlank()) Icons.Default.Lock else Icons.Default.LockOpen,
+                                        contentDescription = null,
+                                        tint = if (targetServer.isAccountConnected || targetServer.authAccount.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Account Connection & Credentials",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.5.sp
+                                    )
+                                }
+
+                                if (targetServer.authAccount.isNotBlank()) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Text(
+                                            text = "Connected",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Account Email / Username
+                            OutlinedTextField(
+                                value = accountInput,
+                                onValueChange = { accountInput = it },
+                                label = { Text("Account Email / Username") },
+                                placeholder = { Text(if (targetServer.providerId == CloudProvider.GOOGLE_DRIVE.id) "yourname@gmail.com" else "user@example.com") },
+                                leadingIcon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Password or App Token
+                            OutlinedTextField(
+                                value = passwordInput,
+                                onValueChange = { passwordInput = it },
+                                label = { Text(if (targetServer.providerId == CloudProvider.GOOGLE_DRIVE.id) "Password / App Password / Token" else "Password / API Secret") },
+                                placeholder = { Text("Enter your account password or token") },
+                                leadingIcon = { Icon(Icons.Default.Key, contentDescription = null) },
+                                trailingIcon = {
+                                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                        Icon(
+                                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                        )
+                                    }
+                                },
+                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Quick Connect / Disconnect Buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        if (accountInput.isNotBlank()) {
+                                            syncManager.connectAccount(
+                                                providerId = targetServer.providerId,
+                                                accountEmail = accountInput,
+                                                secretOrPass = passwordInput
+                                            )
+                                            Toast.makeText(context, "Account connected & verified for ${targetServer.displayName}!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Please enter your email or username first.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Connect Account", fontSize = 11.5.sp)
+                                }
+
+                                if (targetServer.authAccount.isNotBlank()) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            syncManager.disconnectAccount(targetServer.providerId)
+                                            accountInput = ""
+                                            passwordInput = ""
+                                            Toast.makeText(context, "Account disconnected.", Toast.LENGTH_SHORT).show()
+                                        },
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Disconnect", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Target Folder Input
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
@@ -812,6 +991,7 @@ fun CloudSyncDialog(
                         ) {
                             listOf(
                                 "/Mastermind/AutoSync/",
+                                "/Google Drive/Mastermind Notes/",
                                 "/Documents/ResearchNotes/",
                                 "/CloudVault/2026/",
                                 "/Notes/Mastermind/",
@@ -840,20 +1020,6 @@ fun CloudSyncDialog(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
-                    }
-
-                    // Account / Username
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Account Handle / Bucket Name (Optional)", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
-                        OutlinedTextField(
-                            value = accountInput,
-                            onValueChange = { accountInput = it },
-                            placeholder = { Text("e.g. user@gmail.com or my-notes-bucket") },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
 
                     // Sync Direction Behavior
@@ -902,10 +1068,11 @@ fun CloudSyncDialog(
                                     targetFolder = folderInput,
                                     serverUrl = serverUrlInput,
                                     authAccount = accountInput,
+                                    authPasswordOrToken = passwordInput,
                                     direction = selectedDirection
                                 )
                                 editingServerConfig = null
-                                Toast.makeText(context, "Target folder updated for ${targetServer.displayName}!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Saved changes for ${targetServer.displayName}!", Toast.LENGTH_SHORT).show()
                             },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
