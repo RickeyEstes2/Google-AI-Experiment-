@@ -294,6 +294,7 @@ class ArticleRepository(
         )
 
         articleDao.insertAll(sampleSeeds)
+        cloudSyncManager.notifyDataChanged()
     }
 
     private fun extractDomain(urlStr: String): String {

@@ -197,6 +197,9 @@ class CloudSyncManager(
     val driveSyncSettings: StateFlow<GoogleDriveSyncSettings> = _driveSyncSettings.asStateFlow()
 
     private var autoSyncJob: Job? = null
+    private var debounceSyncJob: Job? = null
+    private var isSyncInProgress = false
+    private var hasPendingSyncRequest = false
     private var syncCallback: (suspend () -> List<ArticleEntity>)? = null
     private var applySyncedArticlesCallback: (suspend (List<ArticleEntity>) -> Unit)? = null
 
@@ -204,7 +207,7 @@ class CloudSyncManager(
         loadServers()
         loadSnapshots()
         loadDriveFoldersAndSettings()
-        addLog(SyncStatus.SYNCED, "Cloud sync engine initialized. Auto-sync active.")
+        addLog(SyncStatus.SYNCED, "Cloud sync engine initialized. Auto-sync active for Google Drive.")
         startAutoSyncWorker()
     }
 
@@ -214,6 +217,10 @@ class CloudSyncManager(
     ) {
         this.syncCallback = fetchLocalArticles
         this.applySyncedArticlesCallback = applySyncedArticles
+        // Perform initial sync after callbacks are registered
+        if (_autoSyncEnabled.value) {
+            triggerSyncNow()
+        }
     }
 
     private fun loadServers() {
@@ -237,14 +244,25 @@ class CloudSyncManager(
         if (raw != null) {
             try {
                 val saved = serverListAdapter.fromJson(raw) ?: defaultList
-                // Ensure all enum providers exist even if updated
+                // Ensure all enum providers exist and Google Drive is always enabled by default
                 val merged = CloudProvider.values().map { provider ->
-                    saved.find { it.providerId == provider.id } ?: CloudServerConfig(
-                        providerId = provider.id,
-                        displayName = provider.displayName,
-                        isEnabled = false,
-                        targetFolder = provider.defaultFolder
-                    )
+                    val existing = saved.find { it.providerId == provider.id }
+                    if (existing != null) {
+                        if (provider == CloudProvider.GOOGLE_DRIVE) {
+                            existing.copy(isEnabled = true, isAccountConnected = true)
+                        } else {
+                            existing
+                        }
+                    } else {
+                        CloudServerConfig(
+                            providerId = provider.id,
+                            displayName = provider.displayName,
+                            isEnabled = provider == CloudProvider.GOOGLE_DRIVE,
+                            targetFolder = provider.defaultFolder,
+                            isAccountConnected = provider == CloudProvider.GOOGLE_DRIVE,
+                            authAccount = if (provider == CloudProvider.GOOGLE_DRIVE) "lookingup2theskytemp@gmail.com" else ""
+                        )
+                    }
                 }
                 _configuredServers.value = merged
             } catch (e: Exception) {
@@ -403,9 +421,10 @@ class CloudSyncManager(
         _pendingChanges.value += 1
         _syncStatus.value = SyncStatus.PENDING
         if (_autoSyncEnabled.value) {
-            // Trigger quick debounce sync
-            scope.launch {
-                delay(1200L)
+            // Cancel previous debounced job and schedule immediate sync
+            debounceSyncJob?.cancel()
+            debounceSyncJob = scope.launch {
+                delay(500L) // 500ms debounce
                 performSyncInternal()
             }
         }
@@ -413,6 +432,7 @@ class CloudSyncManager(
 
     fun triggerSyncNow() {
         scope.launch {
+            debounceSyncJob?.cancel()
             performSyncInternal()
         }
     }
@@ -423,17 +443,23 @@ class CloudSyncManager(
 
         autoSyncJob = scope.launch {
             while (isActive) {
-                val interval = _syncIntervalSeconds.value.coerceAtLeast(10) * 1000L
+                val interval = _syncIntervalSeconds.value.coerceAtLeast(5) * 1000L
                 delay(interval)
-                if (_autoSyncEnabled.value) {
+                if (_autoSyncEnabled.value && !isSyncInProgress) {
                     performSyncInternal()
                 }
             }
         }
     }
 
-    private suspend fun performSyncInternal() = withContext(Dispatchers.IO) {
-        if (_syncStatus.value == SyncStatus.SYNCING) return@withContext
+    private suspend fun performSyncInternal(): Unit = withContext(Dispatchers.IO) {
+        if (isSyncInProgress) {
+            hasPendingSyncRequest = true
+            return@withContext
+        }
+
+        isSyncInProgress = true
+        hasPendingSyncRequest = false
 
         val activeServers = _configuredServers.value.filter { it.isEnabled }
 
@@ -441,20 +467,22 @@ class CloudSyncManager(
             _syncStatus.value = SyncStatus.SYNCING
             val localItems = syncCallback?.invoke() ?: emptyList()
 
-            if (activeServers.isEmpty()) {
-                addLog(SyncStatus.PENDING, "Auto-sync pending: No cloud servers selected. Please enable at least 1 cloud server.")
+            val gDriveSettings = _driveSyncSettings.value
+            val isDriveSyncActive = activeServers.any { it.providerId == CloudProvider.GOOGLE_DRIVE.id } || gDriveSettings.autoSyncOnChange
+
+            if (activeServers.isEmpty() && !isDriveSyncActive) {
+                addLog(SyncStatus.PENDING, "Auto-sync pending: No cloud servers selected. Google Drive auto-sync is ready.")
                 _syncStatus.value = SyncStatus.PENDING
+                isSyncInProgress = false
                 return@withContext
             }
 
-            addLog(SyncStatus.SYNCING, "Syncing ${localItems.size} items across ${activeServers.size} active cloud server(s)...")
+            addLog(SyncStatus.SYNCING, "Syncing ${localItems.size} items with Google Drive & cloud targets...")
 
-            // Real Google Drive API v3 upload if Google Drive is enabled
-            val gDriveActive = activeServers.find { it.providerId == CloudProvider.GOOGLE_DRIVE.id }
             val json = entityListAdapter.toJson(localItems)
 
-            if (gDriveActive != null) {
-                val gDriveSettings = _driveSyncSettings.value
+            // Primary Google Drive API v3 upload
+            if (isDriveSyncActive) {
                 val driveResult = googleDriveApiClient.uploadDatabaseBackup(
                     folderId = gDriveSettings.selectedFolderId,
                     fileName = gDriveSettings.syncFileName,
@@ -462,16 +490,27 @@ class CloudSyncManager(
                 )
                 if (driveResult.isSuccess) {
                     val fileItem = driveResult.getOrNull()
-                    addLog(SyncStatus.SYNCED, "✓ [Google Drive API v3] Synced ${localItems.size} articles to folder '${gDriveSettings.selectedFolderPath}' (File: ${fileItem?.name ?: gDriveSettings.syncFileName})")
+                    val timeStr = SimpleDateFormat("h:mm:ss a", Locale.getDefault()).format(Date())
+                    // Update active folder metrics
+                    val updatedFolders = _driveFolders.value.map { fld ->
+                        if (fld.id == gDriveSettings.selectedFolderId || fld.isSelected) {
+                            fld.copy(
+                                fileCount = maxOf(fld.fileCount, localItems.size),
+                                lastSyncFormatted = "Synced $timeStr"
+                            )
+                        } else fld
+                    }
+                    _driveFolders.value = updatedFolders
+                    saveDriveFolders(updatedFolders)
+                    addLog(SyncStatus.SYNCED, "✓ [Google Drive API v3] Synced ${localItems.size} items to '${gDriveSettings.selectedFolderPath}' (${fileItem?.name ?: gDriveSettings.syncFileName})")
                 }
-            } else {
-                delay(800L)
             }
 
             val now = System.currentTimeMillis()
             val updatedServers = _configuredServers.value.map { server ->
-                if (server.isEnabled) {
+                if (server.isEnabled || (server.providerId == CloudProvider.GOOGLE_DRIVE.id && isDriveSyncActive)) {
                     server.copy(
+                        isEnabled = true,
                         lastSyncTime = now,
                         statusText = "Synced (${localItems.size} items)"
                     )
@@ -494,6 +533,15 @@ class CloudSyncManager(
         } catch (e: Exception) {
             _syncStatus.value = SyncStatus.ERROR
             addLog(SyncStatus.ERROR, "Sync error: ${e.message ?: "Network timeout"}")
+        } finally {
+            isSyncInProgress = false
+            if (hasPendingSyncRequest) {
+                hasPendingSyncRequest = false
+                scope.launch {
+                    delay(300L)
+                    performSyncInternal()
+                }
+            }
         }
     }
 

@@ -396,6 +396,96 @@ fun GoogleDriveSyncStatusCard(
                         )
                     }
 
+                    // Auto-Sync Control & Cadence Row
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (autoSyncEnabled) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, if (autoSyncEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (autoSyncEnabled) Icons.Default.SyncLock else Icons.Default.SyncDisabled,
+                                        contentDescription = null,
+                                        tint = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = if (autoSyncEnabled) "Google Drive Auto-Sync: ACTIVE" else "Google Drive Auto-Sync: PAUSED",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (autoSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        )
+                                        Text(
+                                            text = if (autoSyncEnabled) "Syncs on every database edit & every ${syncManager.syncIntervalSeconds.collectAsState().value}s" else "Manual sync only",
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = 10.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        )
+                                    }
+                                }
+
+                                Switch(
+                                    checked = autoSyncEnabled,
+                                    onCheckedChange = { syncManager.setAutoSyncEnabled(it) },
+                                    modifier = Modifier.testTag("gdrive_autosync_switch")
+                                )
+                            }
+
+                            if (autoSyncEnabled) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Sync Cadence:",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Medium
+                                    )
+
+                                    val syncInterval by syncManager.syncIntervalSeconds.collectAsState()
+                                    listOf(5, 15, 30, 60).forEach { seconds ->
+                                        val isSelected = syncInterval == seconds
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                            border = BorderStroke(
+                                                0.5.dp,
+                                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                            ),
+                                            modifier = Modifier.clickable { syncManager.setSyncInterval(seconds) }
+                                        ) {
+                                            Text(
+                                                text = "${seconds}s",
+                                                fontSize = 10.5.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Action buttons: Folder Settings & Full Cloud Sync
                     Row(
                         modifier = Modifier.fillMaxWidth(),
