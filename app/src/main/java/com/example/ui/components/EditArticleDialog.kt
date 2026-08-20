@@ -361,96 +361,12 @@ fun EditArticleDialog(
                     }
                 }
 
-                // Hashtags Management
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Hashtags (${hashtags.size})",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                        if (!isAddingTag) {
-                            TextButton(
-                                onClick = { isAddingTag = true },
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add Tag", fontSize = 12.sp)
-                            }
-                        }
-                    }
-
-                    if (isAddingTag) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = newTagInput,
-                                onValueChange = { newTagInput = it },
-                                placeholder = { Text("tag_name") },
-                                leadingIcon = { Text("#", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary) },
-                                singleLine = true,
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(
-                                onClick = {
-                                    val clean = newTagInput.trim().removePrefix("#")
-                                    if (clean.isNotBlank()) {
-                                        val formatted = "#$clean"
-                                        if (!hashtags.contains(formatted)) {
-                                            hashtags = hashtags + formatted
-                                        }
-                                    }
-                                    newTagInput = ""
-                                    isAddingTag = false
-                                }
-                            ) {
-                                Icon(Icons.Default.Check, contentDescription = "Add", tint = MaterialTheme.colorScheme.primary)
-                            }
-                            IconButton(onClick = { isAddingTag = false; newTagInput = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancel")
-                            }
-                        }
-                    }
-
-                    // Existing Hashtag Chips with Delete
-                    if (hashtags.isNotEmpty()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            hashtags.forEach { tag ->
-                                InputChip(
-                                    selected = true,
-                                    onClick = { /* no-op */ },
-                                    label = { Text(tag, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
-                                    trailingIcon = {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Remove tag",
-                                            modifier = Modifier
-                                                .size(14.dp)
-                                                .clickable {
-                                                    hashtags = hashtags.filterNot { it == tag }
-                                                }
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    } else {
-                        Text("No hashtags assigned.", style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant))
-                    }
-                }
+                // Custom Labels & Tags Management
+                LabelTagPicker(
+                    selectedTags = hashtags,
+                    onTagsChanged = { hashtags = it },
+                    allAvailableTags = allArticles.flatMap { it.hashtags }.distinct()
+                )
 
                 // Linked Posts Management
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

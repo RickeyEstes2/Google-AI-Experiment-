@@ -42,7 +42,7 @@ fun AddArticleDialog(
     var thumbnailUrl by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var hashtagsInput by remember { mutableStateOf("") }
+    var tags by remember { mutableStateOf<List<String>>(emptyList()) }
 
     // Rich text formatting dialog state
     var showFormatDialog by remember { mutableStateOf(false) }
@@ -256,17 +256,10 @@ fun AddArticleDialog(
                     )
                 }
 
-                OutlinedTextField(
-                    value = hashtagsInput,
-                    onValueChange = { hashtagsInput = it },
-                    label = { Text("Hashtags (Optional)") },
-                    placeholder = { Text("#tech, #research, #tips") },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.Tag, contentDescription = null)
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                // Custom Labels & Tags Selector
+                LabelTagPicker(
+                    selectedTags = tags,
+                    onTagsChanged = { tags = it }
                 )
 
                 Button(
@@ -279,12 +272,6 @@ fun AddArticleDialog(
                             } else {
                                 "https://saved.link/${System.currentTimeMillis()}"
                             }
-
-                            val tags = hashtagsInput
-                                .split(",", " ")
-                                .map { it.trim().removePrefix("#") }
-                                .filter { it.isNotBlank() }
-                                .map { "#$it" }
 
                             onSave(finalUrl, title, thumbnailUrl, summary, notes, tags)
                         }

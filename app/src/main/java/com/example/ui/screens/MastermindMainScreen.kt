@@ -31,6 +31,7 @@ import com.example.ui.components.GoogleDriveFolderSettingsDialog
 import com.example.ui.components.GoogleDriveSyncHeaderChip
 import com.example.ui.components.GoogleDriveSyncStatusCard
 import com.example.ui.components.LinkPostPickerDialog
+import com.example.ui.components.QuickTagAssignDialog
 import com.example.ui.viewmodel.LinkFilter
 import com.example.ui.viewmodel.MastermindViewModel
 import kotlinx.coroutines.delay
@@ -62,6 +63,8 @@ fun MastermindMainScreen(
     val syncStatus by syncManager.syncStatus.collectAsState()
     val autoSyncEnabled by syncManager.autoSyncEnabled.collectAsState()
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+
+    var articleForQuickTag by remember { mutableStateOf<Article?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -484,7 +487,8 @@ fun MastermindMainScreen(
                             onEdit = { viewModel.openEditDialog(article) },
                             onToggleFavorite = { viewModel.toggleFavorite(article) },
                             onDelete = { viewModel.deleteLink(article) },
-                            onHashtagClick = { tag -> viewModel.setHashtag(tag) }
+                            onHashtagClick = { tag -> viewModel.setHashtag(tag) },
+                            onQuickEditTags = { articleForQuickTag = article }
                         )
                     }
                 }
@@ -603,6 +607,20 @@ fun MastermindMainScreen(
             onOpenFullCloudSync = {
                 viewModel.closeGoogleDriveFolderSettings()
                 viewModel.openCloudSyncDialog()
+            }
+        )
+    }
+
+    // Quick Tag & Label Assign Dialog
+    articleForQuickTag?.let { targetArticle ->
+        QuickTagAssignDialog(
+            articleTitle = targetArticle.title,
+            currentTags = targetArticle.hashtags,
+            allAvailableTags = availableHashtags,
+            onDismiss = { articleForQuickTag = null },
+            onSaveTags = { newTags ->
+                viewModel.updateHashtags(targetArticle.id, newTags)
+                articleForQuickTag = null
             }
         )
     }

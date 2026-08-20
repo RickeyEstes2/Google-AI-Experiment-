@@ -75,9 +75,9 @@ fun GoogleDriveFolderSettingsDialog(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.92f)
-                .padding(vertical = 12.dp)
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.88f)
+                .padding(vertical = 8.dp)
                 .testTag("google_drive_folder_settings_dialog"),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
@@ -393,27 +393,17 @@ fun GoogleDriveFolderSettingsDialog(
                         Text("Close")
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilledTonalButton(
-                            onClick = {
-                                syncManager.triggerSyncNow()
-                                Toast.makeText(context, "Syncing database to Google Drive target folder...", Toast.LENGTH_SHORT).show()
-                            },
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(15.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Sync to Drive Now")
-                        }
-
-                        Button(
-                            onClick = {
-                                onDismiss()
-                            },
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Apply & Done")
-                        }
+                    Button(
+                        onClick = {
+                            syncManager.triggerSyncNow()
+                            Toast.makeText(context, "Syncing database to Google Drive target folder...", Toast.LENGTH_SHORT).show()
+                            onDismiss()
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Sync Now", fontWeight = FontWeight.Bold)
                     }
                 }
             }
