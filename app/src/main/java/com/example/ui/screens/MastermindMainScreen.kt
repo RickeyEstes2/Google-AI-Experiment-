@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -16,10 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.Article
 import com.example.ui.components.AddArticleDialog
 import com.example.ui.components.ArticleCard
 import com.example.ui.components.ArticleReaderDialog
@@ -35,6 +35,8 @@ fun MastermindMainScreen(
     val articles by viewModel.displayedArticles.collectAsState()
     val allArticlesList by viewModel.allArticles.collectAsState(initial = emptyList())
     val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val selectedHashtag by viewModel.selectedHashtag.collectAsState()
+    val availableHashtags by viewModel.allAvailableHashtags.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isAddDialogOpen by viewModel.isAddDialogOpen.collectAsState()
     val activeArticle by viewModel.activeArticle.collectAsState()
@@ -56,29 +58,29 @@ fun MastermindMainScreen(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(34.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Share,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                         Column {
                             Text(
-                                text = "Saved Links",
+                                text = "Saved Links Hub",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "Shared from Google Chrome",
+                                text = "Chrome Shares • Notes • Summaries",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -94,7 +96,7 @@ fun MastermindMainScreen(
                         modifier = Modifier.padding(end = 12.dp)
                     ) {
                         Text(
-                            text = "${allArticlesList.size} Saved",
+                            text = "${allArticlesList.size} Links",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -131,7 +133,7 @@ fun MastermindMainScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = { Text("Search saved links or domains...", fontSize = 14.sp) },
+                placeholder = { Text("Search titles, notes, summaries, #tags, comments...", fontSize = 13.sp) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
@@ -158,7 +160,7 @@ fun MastermindMainScreen(
                     .testTag("search_links_input")
             )
 
-            // Filter Chips (All, Favorites, Archived)
+            // Primary Filter Chips (All, Favorites, Archived) + Hashtags
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -197,9 +199,72 @@ fun MastermindMainScreen(
                         shape = RoundedCornerShape(20.dp)
                     )
                 }
+
+                // Dynamic Hashtag Chips
+                items(availableHashtags) { tag ->
+                    val isTagSelected = selectedHashtag.equals(tag, ignoreCase = true)
+                    FilterChip(
+                        selected = isTagSelected,
+                        onClick = {
+                            if (isTagSelected) {
+                                viewModel.setHashtag(null)
+                            } else {
+                                viewModel.setHashtag(tag)
+                            }
+                        },
+                        label = { Text(tag) },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.Tag, contentDescription = null, modifier = Modifier.size(14.dp))
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            // Active Hashtag Filter Banner (if a hashtag is active)
+            AnimatedVisibility(visible = selectedHashtag != null) {
+                selectedHashtag?.let { tag ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(text = "Filtered by tag:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.clickable { viewModel.setHashtag(null) }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = tag,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear tag filter",
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Main List or Empty State
             if (articles.isEmpty()) {
@@ -230,7 +295,7 @@ fun MastermindMainScreen(
                         }
 
                         Text(
-                            text = if (searchQuery.isNotBlank()) "No matching links found" else "No saved links yet",
+                            text = if (searchQuery.isNotBlank() || selectedHashtag != null) "No matching links found" else "No saved links yet",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
 
@@ -253,7 +318,7 @@ fun MastermindMainScreen(
                                     )
                                 )
                                 Text(
-                                    text = "1. Open any website or article in Google Chrome.\n2. Tap the three dots (⋮) menu in Chrome.\n3. Tap Share... and select this app.\n4. Your link and title are automatically saved here!",
+                                    text = "1. Open any website in Google Chrome.\n2. Tap the three dots (⋮) menu in Chrome.\n3. Tap Share... and choose this app.\n4. Your link, summary, notes, and hashtags are saved!",
                                     style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -284,7 +349,8 @@ fun MastermindMainScreen(
                             onClick = { viewModel.openArticle(article) },
                             onToggleFavorite = { viewModel.toggleFavorite(article) },
                             onToggleArchive = { viewModel.toggleArchive(article) },
-                            onDelete = { viewModel.deleteLink(article) }
+                            onDelete = { viewModel.deleteLink(article) },
+                            onHashtagClick = { tag -> viewModel.setHashtag(tag) }
                         )
                     }
                 }
@@ -296,20 +362,38 @@ fun MastermindMainScreen(
     if (isAddDialogOpen) {
         AddArticleDialog(
             onDismiss = { viewModel.closeAddDialog() },
-            onSave = { url, title, notes ->
-                viewModel.addNewLink(url = url, title = title, content = notes)
+            onSave = { url, title, summary, notes, hashtags ->
+                viewModel.addNewLink(
+                    url = url,
+                    title = title,
+                    summary = summary,
+                    notes = notes,
+                    hashtags = hashtags
+                )
             }
         )
     }
 
-    // Link Details Reader Dialog
+    // Link Details, Notes, Summary, Hashtags, and Hyperlinkable Comments Dialog
     activeArticle?.let { article ->
         ArticleReaderDialog(
             article = article,
             onDismiss = { viewModel.closeArticle() },
             onToggleFavorite = { viewModel.toggleFavorite(article) },
             onToggleArchive = { viewModel.toggleArchive(article) },
-            onDelete = { viewModel.deleteLink(article) }
+            onDelete = { viewModel.deleteLink(article) },
+            onUpdateLink = { title, summary, notes, hashtags ->
+                viewModel.updateLink(article.id, title, summary, notes, hashtags)
+            },
+            onAddComment = { commentText ->
+                viewModel.addCommentToActiveLink(commentText)
+            },
+            onDeleteComment = { commentId ->
+                viewModel.deleteCommentFromActiveLink(commentId)
+            },
+            onHashtagClick = { tag ->
+                viewModel.setHashtag(tag)
+            }
         )
     }
 }

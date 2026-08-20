@@ -3,6 +3,18 @@ package com.example.data.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.data.crypto.CryptoManager
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.UUID
+
+/**
+ * Data class for hyperlinkable comments on a shared link.
+ */
+data class LinkComment(
+    val id: String = UUID.randomUUID().toString(),
+    val text: String,
+    val timestamp: Long = System.currentTimeMillis()
+)
 
 /**
  * Room entity representing a saved link or shared web page from Chrome.
@@ -17,8 +29,9 @@ data class ArticleEntity(
     val thumbnailUrl: String = "",
     val category: String = "General",
     val hashtagsJson: String = "",
-    val contentEncrypted: String = "",
-    val summaryEncrypted: String = "",
+    val contentEncrypted: String = "", // Notes
+    val summaryEncrypted: String = "", // Summary
+    val commentsJson: String = "", // Comments JSON array
     val readingTimeMinutes: Int = 1,
     val isFavorite: Boolean = false,
     val isArchived: Boolean = false,
@@ -34,8 +47,10 @@ data class ArticleEntity(
             sourceDomain = sourceDomain,
             thumbnailUrl = thumbnailUrl,
             category = category,
-            content = CryptoManager.decrypt(contentEncrypted),
+            hashtags = parseHashtags(hashtagsJson),
+            notes = CryptoManager.decrypt(contentEncrypted),
             summary = CryptoManager.decrypt(summaryEncrypted),
+            comments = parseComments(commentsJson),
             readingTimeMinutes = readingTimeMinutes,
             isFavorite = isFavorite,
             isArchived = isArchived,
@@ -52,13 +67,56 @@ data class ArticleEntity(
                 sourceDomain = article.sourceDomain,
                 thumbnailUrl = article.thumbnailUrl,
                 category = article.category,
-                contentEncrypted = CryptoManager.encrypt(article.content),
+                hashtagsJson = article.hashtags.joinToString(","),
+                contentEncrypted = CryptoManager.encrypt(article.notes),
                 summaryEncrypted = CryptoManager.encrypt(article.summary),
+                commentsJson = serializeComments(article.comments),
                 readingTimeMinutes = article.readingTimeMinutes,
                 isFavorite = article.isFavorite,
                 isArchived = article.isArchived,
                 createdTimestamp = article.createdTimestamp
             )
+        }
+
+        private fun parseHashtags(raw: String): List<String> {
+            if (raw.isBlank()) return emptyList()
+            return raw.split(",")
+                .map { it.trim().removePrefix("#") }
+                .filter { it.isNotBlank() }
+                .map { "#$it" }
+        }
+
+        private fun parseComments(raw: String): List<LinkComment> {
+            if (raw.isBlank()) return emptyList()
+            val list = mutableListOf<LinkComment>()
+            try {
+                val array = JSONArray(raw)
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    list.add(
+                        LinkComment(
+                            id = obj.optString("id", UUID.randomUUID().toString()),
+                            text = obj.optString("text", ""),
+                            timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                // Return empty if parsing failed
+            }
+            return list
+        }
+
+        private fun serializeComments(comments: List<LinkComment>): String {
+            val array = JSONArray()
+            comments.forEach { c ->
+                val obj = JSONObject()
+                obj.put("id", c.id)
+                obj.put("text", c.text)
+                obj.put("timestamp", c.timestamp)
+                array.put(obj)
+            }
+            return array.toString()
         }
     }
 }
@@ -73,8 +131,10 @@ data class Article(
     val sourceDomain: String,
     val thumbnailUrl: String = "",
     val category: String = "General",
-    val content: String = "",
+    val hashtags: List<String> = emptyList(),
+    val notes: String = "",
     val summary: String = "",
+    val comments: List<LinkComment> = emptyList(),
     val readingTimeMinutes: Int = 1,
     val isFavorite: Boolean = false,
     val isArchived: Boolean = false,

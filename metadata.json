@@ -1,6 +1,6 @@
 {
   "name": "Database Mastermind",
-  "description": "Offline reading list, categorized knowledge base, and AI analysis for saved Chrome pages",
+  "description": "Save links from Chrome with summaries, notes, hashtags, and hyperlinkable comments",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

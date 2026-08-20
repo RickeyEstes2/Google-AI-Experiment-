@@ -8,6 +8,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Subject
+import androidx.compose.material.icons.outlined.Tag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,12 +24,14 @@ import androidx.compose.ui.window.Dialog
 @Composable
 fun AddArticleDialog(
     onDismiss: () -> Unit,
-    onSave: (url: String, title: String, content: String) -> Unit,
+    onSave: (url: String, title: String, summary: String, notes: String, hashtags: List<String>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var url by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
+    var summary by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
+    var hashtagsInput by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -51,7 +56,7 @@ fun AddArticleDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Save Link",
+                        text = "Save Link with Details",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     IconButton(onClick = onDismiss) {
@@ -95,19 +100,49 @@ fun AddArticleDialog(
                 )
 
                 OutlinedTextField(
+                    value = summary,
+                    onValueChange = { summary = it },
+                    label = { Text("Summary (Optional)") },
+                    placeholder = { Text("Brief overview of the article...") },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.Subject, contentDescription = null)
+                    },
+                    minLines = 2,
+                    maxLines = 4,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes / Snippet (Optional)") },
-                    placeholder = { Text("Add any personal notes...") },
-                    minLines = 3,
-                    maxLines = 6,
+                    label = { Text("Notes (Optional)") },
+                    placeholder = { Text("Add personal thoughts, key takeaways...") },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.EditNote, contentDescription = null)
+                    },
+                    minLines = 2,
+                    maxLines = 5,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = hashtagsInput,
+                    onValueChange = { hashtagsInput = it },
+                    label = { Text("Hashtags (Optional)") },
+                    placeholder = { Text("#tech, #research, #tips") },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.Tag, contentDescription = null)
+                    },
+                    singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Button(
                     onClick = {
-                        if (url.isNotBlank() || title.isNotBlank() || notes.isNotBlank()) {
+                        if (url.isNotBlank() || title.isNotBlank() || notes.isNotBlank() || summary.isNotBlank()) {
                             val finalUrl = if (url.startsWith("http://") || url.startsWith("https://")) {
                                 url
                             } else if (url.isNotBlank()) {
@@ -115,7 +150,14 @@ fun AddArticleDialog(
                             } else {
                                 "https://saved.link/${System.currentTimeMillis()}"
                             }
-                            onSave(finalUrl, title, notes)
+
+                            val tags = hashtagsInput
+                                .split(",", " ")
+                                .map { it.trim().removePrefix("#") }
+                                .filter { it.isNotBlank() }
+                                .map { "#$it" }
+
+                            onSave(finalUrl, title, summary, notes, tags)
                         }
                     },
                     modifier = Modifier
