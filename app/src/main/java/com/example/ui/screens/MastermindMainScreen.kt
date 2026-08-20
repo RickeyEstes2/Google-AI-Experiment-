@@ -70,7 +70,7 @@ fun MastermindMainScreen(
         }
     }
 
-    val timeFormatter = remember { SimpleDateFormat("hh:mm:ss a", Locale.getDefault()) }
+    val timeFormatter = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val dateFormatter = remember { SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()) }
 
     val formattedTime = remember(currentTime) { timeFormatter.format(Date(currentTime)) }

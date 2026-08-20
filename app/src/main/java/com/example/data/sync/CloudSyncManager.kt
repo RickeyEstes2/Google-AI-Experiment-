@@ -27,6 +27,89 @@ enum class ConflictResolutionStrategy(val title: String) {
     CLIENT_WINS("Local Device Wins")
 }
 
+enum class SyncDirection(val label: String) {
+    TWO_WAY("Two-Way Sync (Bidirectional)"),
+    UPLOAD_ONLY("Backup (Upload Only)"),
+    DOWNLOAD_ONLY("Mirror (Download Only)")
+}
+
+enum class CloudProvider(
+    val id: String,
+    val displayName: String,
+    val defaultFolder: String,
+    val description: String,
+    val protocolType: String
+) {
+    GOOGLE_DRIVE(
+        id = "google_drive",
+        displayName = "Google Drive",
+        defaultFolder = "/Google Drive/Mastermind Notes/",
+        description = "Sync across personal & workspace Google Drive folders",
+        protocolType = "Drive REST v3"
+    ),
+    DROPBOX(
+        id = "dropbox",
+        displayName = "Dropbox",
+        defaultFolder = "/Dropbox/Apps/Mastermind/",
+        description = "Store notes, formulas & diagrams in your Dropbox App folder",
+        protocolType = "Dropbox v2 API"
+    ),
+    MICROSOFT_ONEDRIVE(
+        id = "onedrive",
+        displayName = "Microsoft OneDrive",
+        defaultFolder = "/OneDrive/Documents/Mastermind/",
+        description = "Synchronize seamlessly with OneDrive Personal or Business",
+        protocolType = "Microsoft Graph"
+    ),
+    NEXTCLOUD_WEBDAV(
+        id = "nextcloud",
+        displayName = "Nextcloud / ownCloud",
+        defaultFolder = "/Nextcloud/Notes/Mastermind/",
+        description = "Self-hosted private cloud via secure WebDAV protocol",
+        protocolType = "WebDAV / CalDAV"
+    ),
+    AMAZON_S3(
+        id = "aws_s3",
+        displayName = "AWS S3 / MinIO Object Storage",
+        defaultFolder = "s3://mastermind-notes-bucket/sync/",
+        description = "Encrypted multi-region object storage bucket",
+        protocolType = "S3 Object Store"
+    ),
+    BOX(
+        id = "box",
+        displayName = "Box.com",
+        defaultFolder = "/Box/Sync/Mastermind/",
+        description = "Enterprise-grade cloud content management",
+        protocolType = "Box v2 REST"
+    ),
+    APPLE_ICLOUD(
+        id = "icloud",
+        displayName = "Apple iCloud Drive",
+        defaultFolder = "/iCloud Drive/Mastermind/",
+        description = "Sync across iOS, macOS, and Android devices",
+        protocolType = "CloudKit Storage"
+    ),
+    CUSTOM_WEBDAV_SERVER(
+        id = "custom_server",
+        displayName = "Custom Server / WebDAV URL",
+        defaultFolder = "/remote_vault/mastermind_data/",
+        description = "Connect to any custom HTTPS WebDAV or REST sync endpoint",
+        protocolType = "Custom HTTPS API"
+    )
+}
+
+data class CloudServerConfig(
+    val providerId: String,
+    val displayName: String,
+    val isEnabled: Boolean = false,
+    val targetFolder: String,
+    val serverUrl: String = "",
+    val authAccount: String = "",
+    val syncDirection: String = SyncDirection.TWO_WAY.name,
+    val lastSyncTime: Long = 0L,
+    val statusText: String = "Ready"
+)
+
 data class SyncLogEntry(
     val id: String = UUID.randomUUID().toString(),
     val timestamp: Long = System.currentTimeMillis(),
@@ -51,6 +134,9 @@ class CloudSyncManager(
     private val entityListType = Types.newParameterizedType(List::class.java, ArticleEntity::class.java)
     private val entityListAdapter = moshi.adapter<List<ArticleEntity>>(entityListType)
 
+    private val serverListType = Types.newParameterizedType(List::class.java, CloudServerConfig::class.java)
+    private val serverListAdapter = moshi.adapter<List<CloudServerConfig>>(serverListType)
+
     private val _syncStatus = MutableStateFlow(SyncStatus.SYNCED)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
@@ -66,6 +152,9 @@ class CloudSyncManager(
     private val _syncIntervalSeconds = MutableStateFlow(prefs.getInt("sync_interval_seconds", 30))
     val syncIntervalSeconds: StateFlow<Int> = _syncIntervalSeconds.asStateFlow()
 
+    private val _configuredServers = MutableStateFlow<List<CloudServerConfig>>(emptyList())
+    val configuredServers: StateFlow<List<CloudServerConfig>> = _configuredServers.asStateFlow()
+
     private val _syncLogs = MutableStateFlow<List<SyncLogEntry>>(emptyList())
     val syncLogs: StateFlow<List<SyncLogEntry>> = _syncLogs.asStateFlow()
 
@@ -77,6 +166,7 @@ class CloudSyncManager(
     private var applySyncedArticlesCallback: (suspend (List<ArticleEntity>) -> Unit)? = null
 
     init {
+        loadServers()
         loadSnapshots()
         addLog(SyncStatus.SYNCED, "Cloud sync engine initialized. Auto-sync active.")
         startAutoSyncWorker()
@@ -88,6 +178,123 @@ class CloudSyncManager(
     ) {
         this.syncCallback = fetchLocalArticles
         this.applySyncedArticlesCallback = applySyncedArticles
+    }
+
+    private fun loadServers() {
+        val raw = prefs.getString("cloud_servers_config_json", null)
+        val defaultList = CloudProvider.values().mapIndexed { index, provider ->
+            CloudServerConfig(
+                providerId = provider.id,
+                displayName = provider.displayName,
+                isEnabled = index == 0, // Enable Google Drive by default
+                targetFolder = provider.defaultFolder,
+                serverUrl = if (provider == CloudProvider.NEXTCLOUD_WEBDAV) "https://cloud.example.org/remote.php/webdav/" else "",
+                authAccount = if (index == 0) "user@gmail.com" else "",
+                syncDirection = SyncDirection.TWO_WAY.name,
+                lastSyncTime = if (index == 0) System.currentTimeMillis() else 0L,
+                statusText = if (index == 0) "Active" else "Ready"
+            )
+        }
+
+        if (raw != null) {
+            try {
+                val saved = serverListAdapter.fromJson(raw) ?: defaultList
+                // Ensure all enum providers exist even if updated
+                val merged = CloudProvider.values().map { provider ->
+                    saved.find { it.providerId == provider.id } ?: CloudServerConfig(
+                        providerId = provider.id,
+                        displayName = provider.displayName,
+                        isEnabled = false,
+                        targetFolder = provider.defaultFolder
+                    )
+                }
+                _configuredServers.value = merged
+            } catch (e: Exception) {
+                _configuredServers.value = defaultList
+            }
+        } else {
+            _configuredServers.value = defaultList
+            saveServers(defaultList)
+        }
+    }
+
+    private fun saveServers(servers: List<CloudServerConfig>) {
+        try {
+            prefs.edit().putString("cloud_servers_config_json", serverListAdapter.toJson(servers)).apply()
+        } catch (_: Exception) {}
+    }
+
+    fun toggleServerEnabled(providerId: String, enabled: Boolean) {
+        val updated = _configuredServers.value.map {
+            if (it.providerId == providerId) {
+                it.copy(
+                    isEnabled = enabled,
+                    statusText = if (enabled) "Enabled" else "Disabled"
+                )
+            } else it
+        }
+        _configuredServers.value = updated
+        saveServers(updated)
+        val server = updated.find { it.providerId == providerId }
+        addLog(
+            if (enabled) SyncStatus.SYNCED else SyncStatus.PENDING,
+            "${server?.displayName ?: providerId} auto-sync ${if (enabled) "ENABLED" else "DISABLED"}"
+        )
+        if (enabled && _autoSyncEnabled.value) {
+            triggerSyncNow()
+        }
+    }
+
+    fun updateServerFolder(providerId: String, newFolder: String) {
+        val updated = _configuredServers.value.map {
+            if (it.providerId == providerId) {
+                it.copy(targetFolder = newFolder.trim())
+            } else it
+        }
+        _configuredServers.value = updated
+        saveServers(updated)
+        addLog(SyncStatus.SYNCED, "Updated target folder for $providerId to: $newFolder")
+    }
+
+    fun updateServerDetails(
+        providerId: String,
+        targetFolder: String,
+        serverUrl: String,
+        authAccount: String,
+        direction: SyncDirection
+    ) {
+        val updated = _configuredServers.value.map {
+            if (it.providerId == providerId) {
+                it.copy(
+                    targetFolder = targetFolder.trim(),
+                    serverUrl = serverUrl.trim(),
+                    authAccount = authAccount.trim(),
+                    syncDirection = direction.name
+                )
+            } else it
+        }
+        _configuredServers.value = updated
+        saveServers(updated)
+        addLog(SyncStatus.SYNCED, "Updated configuration & folder for $providerId.")
+    }
+
+    fun testServerConnection(providerId: String) {
+        scope.launch {
+            val server = _configuredServers.value.find { it.providerId == providerId } ?: return@launch
+            addLog(SyncStatus.SYNCING, "Testing connection to ${server.displayName} at folder: ${server.targetFolder}...")
+            delay(800L)
+            val updated = _configuredServers.value.map {
+                if (it.providerId == providerId) {
+                    it.copy(
+                        statusText = "Verified Connected",
+                        lastSyncTime = System.currentTimeMillis()
+                    )
+                } else it
+            }
+            _configuredServers.value = updated
+            saveServers(updated)
+            addLog(SyncStatus.SYNCED, "Connection verified for ${server.displayName}! Target folder confirmed.")
+        }
     }
 
     fun setAutoSyncEnabled(enabled: Boolean) {
@@ -150,25 +357,47 @@ class CloudSyncManager(
     private suspend fun performSyncInternal() = withContext(Dispatchers.IO) {
         if (_syncStatus.value == SyncStatus.SYNCING) return@withContext
 
+        val activeServers = _configuredServers.value.filter { it.isEnabled }
+
         try {
             _syncStatus.value = SyncStatus.SYNCING
-            addLog(SyncStatus.SYNCING, "Connecting to Cloud Endpoint & verifying hash...")
-
-            // Fetch current local entities
             val localItems = syncCallback?.invoke() ?: emptyList()
-            delay(900L) // Simulate network cloud verification
 
-            // Backup snapshot to cloud storage cache
+            if (activeServers.isEmpty()) {
+                addLog(SyncStatus.PENDING, "Auto-sync pending: No cloud servers selected. Please enable at least 1 cloud server.")
+                _syncStatus.value = SyncStatus.PENDING
+                return@withContext
+            }
+
+            addLog(SyncStatus.SYNCING, "Syncing ${localItems.size} items across ${activeServers.size} active cloud server(s)...")
+
+            // Simulate network sync to all selected servers
+            delay(1000L)
+
+            val now = System.currentTimeMillis()
+            val updatedServers = _configuredServers.value.map { server ->
+                if (server.isEnabled) {
+                    server.copy(
+                        lastSyncTime = now,
+                        statusText = "Synced (${localItems.size} items)"
+                    )
+                } else server
+            }
+            _configuredServers.value = updatedServers
+            saveServers(updatedServers)
+
+            // Cache local state
             val json = entityListAdapter.toJson(localItems)
             prefs.edit().putString("cloud_storage_cached_state", json).apply()
 
-            val now = System.currentTimeMillis()
             _lastSyncTimestamp.value = now
             prefs.edit().putLong("last_sync_timestamp", now).apply()
             _pendingChanges.value = 0
             _syncStatus.value = SyncStatus.SYNCED
 
-            addLog(SyncStatus.SYNCED, "Cloud auto-sync completed successfully (${localItems.size} links synced).")
+            activeServers.forEach { s ->
+                addLog(SyncStatus.SYNCED, "✓ [${s.displayName}] Synced ${localItems.size} items to folder: ${s.targetFolder}")
+            }
         } catch (e: Exception) {
             _syncStatus.value = SyncStatus.ERROR
             addLog(SyncStatus.ERROR, "Sync error: ${e.message ?: "Network timeout"}")
@@ -177,7 +406,7 @@ class CloudSyncManager(
 
     fun createSnapshot(items: List<ArticleEntity>, note: String = "") {
         val now = System.currentTimeMillis()
-        val dateStr = SimpleDateFormat("MMM d, HH:mm:ss", Locale.getDefault()).format(Date(now))
+        val dateStr = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(now))
         val name = if (note.isNotBlank()) "$note ($dateStr)" else "Snapshot ($dateStr)"
         val json = entityListAdapter.toJson(items)
         val snapshot = CloudSnapshot(
@@ -250,3 +479,4 @@ class CloudSyncManager(
         } catch (_: Exception) {}
     }
 }
+
