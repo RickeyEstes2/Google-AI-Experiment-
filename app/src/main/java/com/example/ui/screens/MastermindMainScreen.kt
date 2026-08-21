@@ -45,6 +45,7 @@ fun MastermindMainScreen(
     val readingArticle by viewModel.readingArticle.collectAsStateWithLifecycle()
     val editingArticle by viewModel.editingArticle.collectAsStateWithLifecycle()
     val showAddDialog by viewModel.showAddDialog.collectAsStateWithLifecycle()
+    val pendingInitialData by viewModel.pendingInitialData.collectAsStateWithLifecycle()
     val linkedArticles by viewModel.linkedArticles.collectAsStateWithLifecycle()
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
 
@@ -366,6 +367,11 @@ fun MastermindMainScreen(
         AddArticleDialog(
             allArticles = allArticles,
             availableTags = availableHashtags,
+            initialUrl = pendingInitialData?.url ?: "",
+            initialTitle = pendingInitialData?.title ?: "",
+            initialNotes = pendingInitialData?.notes ?: "",
+            initialHashtags = pendingInitialData?.hashtags ?: emptyList(),
+            isFromShare = pendingInitialData != null,
             onDismiss = { viewModel.closeAddDialog() },
             onSave = { url, title, thumb, sum, notes, tags, links ->
                 viewModel.addLink(url, title, thumb, sum, notes, tags, links)

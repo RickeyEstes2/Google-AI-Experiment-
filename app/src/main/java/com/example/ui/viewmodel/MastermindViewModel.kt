@@ -16,6 +16,13 @@ enum class LinkFilter {
     HAS_NOTES
 }
 
+data class InitialNoteData(
+    val url: String = "",
+    val title: String = "",
+    val notes: String = "",
+    val hashtags: List<String> = emptyList()
+)
+
 class MastermindViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: ArticleRepository
@@ -39,6 +46,9 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
 
     private val _showAddDialog = MutableStateFlow(false)
     val showAddDialog: StateFlow<Boolean> = _showAddDialog.asStateFlow()
+
+    private val _pendingInitialData = MutableStateFlow<InitialNoteData?>(null)
+    val pendingInitialData: StateFlow<InitialNoteData?> = _pendingInitialData.asStateFlow()
 
     private val _linkedArticles = MutableStateFlow<List<Article>>(emptyList())
     val linkedArticles: StateFlow<List<Article>> = _linkedArticles.asStateFlow()
@@ -133,12 +143,24 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
         _linkedArticles.value = emptyList()
     }
 
-    fun openAddDialog() {
+    fun openAddDialog(initialData: InitialNoteData? = null) {
+        _pendingInitialData.value = initialData
+        _showAddDialog.value = true
+    }
+
+    fun handleIncomingShare(url: String, title: String, notes: String) {
+        _pendingInitialData.value = InitialNoteData(
+            url = url,
+            title = title,
+            notes = notes,
+            hashtags = listOf("#ReadLater")
+        )
         _showAddDialog.value = true
     }
 
     fun closeAddDialog() {
         _showAddDialog.value = false
+        _pendingInitialData.value = null
     }
 
     fun openEditDialog(article: Article) {

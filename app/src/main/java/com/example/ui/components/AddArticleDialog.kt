@@ -20,15 +20,20 @@ import com.example.ui.theme.AppIcons
 fun AddArticleDialog(
     allArticles: List<Article>,
     availableTags: List<String>,
+    initialUrl: String = "",
+    initialTitle: String = "",
+    initialNotes: String = "",
+    initialHashtags: List<String> = emptyList(),
+    isFromShare: Boolean = false,
     onDismiss: () -> Unit,
     onSave: (url: String, title: String, thumbnailUrl: String, summary: String, notes: String, hashtags: List<String>, linkedIds: List<Long>) -> Unit
 ) {
-    var url by remember { mutableStateOf("") }
-    var title by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf(initialUrl) }
+    var title by remember { mutableStateOf(initialTitle) }
     var thumbnailUrl by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var hashtags by remember { mutableStateOf(listOf<String>()) }
+    var notes by remember { mutableStateOf(initialNotes) }
+    var hashtags by remember { mutableStateOf(initialHashtags) }
     var linkedIds by remember { mutableStateOf(listOf<Long>()) }
 
     var showLinkPickerDialog by remember { mutableStateOf(false) }
@@ -55,10 +60,18 @@ fun AddArticleDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Add to Database",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Column {
+                        Text(
+                            text = if (isFromShare) "Save Shared Link" else "Add to Database",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                        if (isFromShare) {
+                            Text(
+                                text = "Shared from Chrome / Browser",
+                                style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
+                            )
+                        }
+                    }
                     IconButton(onClick = onDismiss) {
                         Icon(AppIcons.Close, contentDescription = "Close")
                     }
