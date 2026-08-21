@@ -10,62 +10,51 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val LightColorScheme = lightColorScheme(
-    primary = Slate900,
-    onPrimary = Color.White,
-    primaryContainer = Slate100,
-    onPrimaryContainer = Slate900,
-    secondary = SkyBlue600,
-    onSecondary = Color.White,
-    secondaryContainer = SkyBlue100,
-    onSecondaryContainer = Color(0xFF0369A1),
-    tertiary = Emerald600,
-    background = Color(0xFFF3F4F6),
-    onBackground = Slate900,
-    surface = Color.White,
-    onSurface = Slate900,
-    surfaceVariant = Color(0xFFF8FAFC),
-    onSurfaceVariant = Slate600,
-    outline = Slate400,
-    outlineVariant = Slate200
-)
+val DeepDarkBackground = Color(0xFF0F172A)
+val CardSurfaceDark = Color(0xFF162032)
+val CardElevatedDark = Color(0xFF1E293B)
+val BorderDark = Color(0xFF2E3D52)
+val TextMuted = Color(0xFF94A3B8)
+val TextLight = Color(0xFFF1F5F9)
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color.White,
     onPrimary = Slate900,
-    primaryContainer = Slate800,
+    primaryContainer = CardElevatedDark,
     onPrimaryContainer = Color.White,
     secondary = SkyBlue500,
     onSecondary = Slate900,
-    secondaryContainer = Slate800,
+    secondaryContainer = CardElevatedDark,
     onSecondaryContainer = SkyBlue100,
     tertiary = Emerald600,
-    background = Color(0xFF0B0F17),
-    onBackground = Color(0xFFF1F5F9),
-    surface = Color(0xFF131B2A),
-    onSurface = Color(0xFFF1F5F9),
-    surfaceVariant = Color(0xFF1E293B),
-    onSurfaceVariant = Color(0xFF94A3B8),
-    outline = Slate600,
-    outlineVariant = Slate700
+    background = DeepDarkBackground,
+    onBackground = TextLight,
+    surface = CardSurfaceDark,
+    onSurface = TextLight,
+    surfaceVariant = CardElevatedDark,
+    onSurfaceVariant = TextMuted,
+    outline = BorderDark,
+    outlineVariant = BorderDark
 )
+
+private val LightColorScheme = DarkColorScheme // Default to sleek Mastermind Dark style
 
 @Composable
 fun DatabaseMastermindTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = DarkColorScheme
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                window.statusBarColor = Color.Transparent.toArgb()
-                window.navigationBarColor = Color.Transparent.toArgb()
+                window.statusBarColor = DeepDarkBackground.toArgb()
+                window.navigationBarColor = DeepDarkBackground.toArgb()
                 val controller = WindowCompat.getInsetsController(window, view)
-                controller.isAppearanceLightStatusBars = !darkTheme
-                controller.isAppearanceLightNavigationBars = !darkTheme
+                controller.isAppearanceLightStatusBars = false
+                controller.isAppearanceLightNavigationBars = false
             }
         }
     }

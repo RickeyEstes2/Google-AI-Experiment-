@@ -21,6 +21,8 @@ object AppIcons {
     val FavoriteBorder: ImageVector = Icons.Default.FavoriteBorder
     val Edit: ImageVector = Icons.Default.Edit
     val Delete: ImageVector = Icons.Default.Delete
+    val Menu: ImageVector = Icons.Default.Menu
+    val Star: ImageVector = Icons.Default.Star
 
     // Custom lightweight vector for Storage/Database
     val Storage: ImageVector by lazy {

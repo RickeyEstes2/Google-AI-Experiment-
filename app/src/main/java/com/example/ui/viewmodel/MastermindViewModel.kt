@@ -19,6 +19,8 @@ enum class LinkFilter {
 data class InitialNoteData(
     val url: String = "",
     val title: String = "",
+    val thumbnailUrl: String = "",
+    val summary: String = "",
     val notes: String = "",
     val hashtags: List<String> = emptyList()
 )
@@ -156,6 +158,26 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
             hashtags = listOf("#ReadLater")
         )
         _showAddDialog.value = true
+
+        if (url.isNotBlank()) {
+            viewModelScope.launch {
+                try {
+                    val meta = com.example.util.LinkMetadataFetcher.fetchMetadata(url)
+                    val current = _pendingInitialData.value
+                    if (current != null && current.url == url) {
+                        _pendingInitialData.value = current.copy(
+                            title = if (current.title.isBlank() || current.title == "Shared Link") (meta.title ?: current.title) else current.title,
+                            thumbnailUrl = meta.imageUrl ?: current.thumbnailUrl,
+                            summary = if (current.summary.isBlank()) (meta.description ?: "") else current.summary
+                        )
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    suspend fun fetchUrlMetadata(url: String): com.example.util.LinkMetadata {
+        return com.example.util.LinkMetadataFetcher.fetchMetadata(url)
     }
 
     fun closeAddDialog() {

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,13 +9,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import com.example.data.model.Article
 import com.example.ui.theme.AppIcons
+import com.example.util.LinkMetadataFetcher
+import kotlinx.coroutines.launch
 
 @Composable
 fun EditArticleDialog(
@@ -33,6 +39,8 @@ fun EditArticleDialog(
     var hashtags by remember { mutableStateOf(article.hashtags) }
     var linkedIds by remember { mutableStateOf(article.linkedArticleIds) }
 
+    var isFetchingMetadata by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var showLinkPickerDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
@@ -42,7 +50,7 @@ fun EditArticleDialog(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.9f)
+                .fillMaxHeight(0.92f)
                 .padding(vertical = 12.dp)
                 .testTag("edit_article_dialog")
         ) {
@@ -82,6 +90,66 @@ fun EditArticleDialog(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth().testTag("edit_url_input")
                     )
+
+                    // Image Preview & Auto-Fetch Button
+                    if (thumbnailUrl.isNotBlank()) {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    AsyncImage(
+                                        model = thumbnailUrl,
+                                        contentDescription = "Thumbnail Preview",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(130.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                    IconButton(
+                                        onClick = { thumbnailUrl = "" },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(4.dp)
+                                            .size(28.dp)
+                                    ) {
+                                        Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)) {
+                                            Icon(AppIcons.Close, contentDescription = "Remove Image", modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else if (url.isNotBlank()) {
+                        FilledTonalButton(
+                            onClick = {
+                                scope.launch {
+                                    isFetchingMetadata = true
+                                    try {
+                                        val meta = LinkMetadataFetcher.fetchMetadata(url)
+                                        if (!meta.imageUrl.isNullOrBlank()) {
+                                            thumbnailUrl = meta.imageUrl
+                                        }
+                                    } catch (_: Exception) {} finally {
+                                        isFetchingMetadata = false
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isFetchingMetadata) {
+                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Auto-fetching image...", fontSize = 12.sp)
+                            } else {
+                                Text("Auto-Fetch Image from URL", fontSize = 12.sp)
+                            }
+                        }
+                    }
 
                     OutlinedTextField(
                         value = title,
@@ -180,17 +248,15 @@ fun EditArticleDialog(
                                     thumbnailUrl = thumbnailUrl.trim(),
                                     summary = summary.trim(),
                                     notes = notes.trim(),
-                                    hashtags = hashtags,
-                                    linkedArticleIds = linkedIds,
-                                    updatedAt = System.currentTimeMillis()
+                                    hashtags = hashtags.map { it.trim() }.filter { it.isNotBlank() },
+                                    linkedArticleIds = linkedIds
                                 )
                                 onSave(updated)
-                                onDismiss()
                             },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.testTag("save_edit_button")
                         ) {
-                            Text("Save Changes")
+                            Text("Save Changes", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -198,27 +264,16 @@ fun EditArticleDialog(
         }
     }
 
-    if (showLinkPickerDialog) {
-        LinkPostPickerDialog(
-            currentArticleId = article.id,
-            allArticles = allArticles,
-            initialSelectedIds = linkedIds,
-            onDismiss = { showLinkPickerDialog = false },
-            onSaveLinks = { linkedIds = it }
-        )
-    }
-
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this Note?") },
-            text = { Text("This will permanently remove '${article.title}' from your local database.") },
+            title = { Text("Delete Note?") },
+            text = { Text("Are you sure you want to delete '${article.title}' from your knowledge base?") },
             confirmButton = {
                 Button(
                     onClick = {
-                        onDelete(article)
                         showDeleteConfirm = false
-                        onDismiss()
+                        onDelete(article)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
@@ -229,6 +284,19 @@ fun EditArticleDialog(
                 TextButton(onClick = { showDeleteConfirm = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    if (showLinkPickerDialog) {
+        LinkPostPickerDialog(
+            allArticles = allArticles,
+            initialSelectedIds = linkedIds,
+            currentArticleId = article.id,
+            onDismiss = { showLinkPickerDialog = false },
+            onSaveLinks = { selected ->
+                linkedIds = selected
+                showLinkPickerDialog = false
             }
         )
     }

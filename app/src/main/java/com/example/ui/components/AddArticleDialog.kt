@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,13 +9,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import com.example.data.model.Article
 import com.example.ui.theme.AppIcons
+import com.example.util.LinkMetadataFetcher
+import kotlinx.coroutines.delay
 
 @Composable
 fun AddArticleDialog(
@@ -22,6 +28,8 @@ fun AddArticleDialog(
     availableTags: List<String>,
     initialUrl: String = "",
     initialTitle: String = "",
+    initialThumbnailUrl: String = "",
+    initialSummary: String = "",
     initialNotes: String = "",
     initialHashtags: List<String> = emptyList(),
     isFromShare: Boolean = false,
@@ -30,13 +38,37 @@ fun AddArticleDialog(
 ) {
     var url by remember { mutableStateOf(initialUrl) }
     var title by remember { mutableStateOf(initialTitle) }
-    var thumbnailUrl by remember { mutableStateOf("") }
-    var summary by remember { mutableStateOf("") }
+    var thumbnailUrl by remember { mutableStateOf(initialThumbnailUrl) }
+    var summary by remember { mutableStateOf(initialSummary) }
     var notes by remember { mutableStateOf(initialNotes) }
     var hashtags by remember { mutableStateOf(initialHashtags) }
     var linkedIds by remember { mutableStateOf(listOf<Long>()) }
 
+    var isFetchingMetadata by remember { mutableStateOf(false) }
     var showLinkPickerDialog by remember { mutableStateOf(false) }
+
+    // Auto-fetch image and metadata when URL is entered
+    LaunchedEffect(url) {
+        val trimmed = url.trim()
+        if (trimmed.length > 8 && (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.contains("."))) {
+            delay(500) // debounce
+            isFetchingMetadata = true
+            try {
+                val meta = LinkMetadataFetcher.fetchMetadata(trimmed)
+                if (thumbnailUrl.isBlank() && !meta.imageUrl.isNullOrBlank()) {
+                    thumbnailUrl = meta.imageUrl
+                }
+                if (title.isBlank() && !meta.title.isNullOrBlank()) {
+                    title = meta.title
+                }
+                if (summary.isBlank() && !meta.description.isNullOrBlank()) {
+                    summary = meta.description
+                }
+            } catch (_: Exception) {} finally {
+                isFetchingMetadata = false
+            }
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -44,7 +76,7 @@ fun AddArticleDialog(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.9f)
+                .fillMaxHeight(0.92f)
                 .padding(vertical = 12.dp)
                 .testTag("add_article_dialog")
         ) {
@@ -105,6 +137,72 @@ fun AddArticleDialog(
                         modifier = Modifier.fillMaxWidth().testTag("add_url_input")
                     )
 
+                    // Auto-fetching image status indicator
+                    if (isFetchingMetadata) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Auto-detecting image & metadata...",
+                                    style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                )
+                            }
+                        }
+                    }
+
+                    // Image Preview if available
+                    if (thumbnailUrl.isNotBlank()) {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    AsyncImage(
+                                        model = thumbnailUrl,
+                                        contentDescription = "Thumbnail Preview",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(130.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                    )
+                                    IconButton(
+                                        onClick = { thumbnailUrl = "" },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(4.dp)
+                                            .size(28.dp)
+                                    ) {
+                                        Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)) {
+                                            Icon(AppIcons.Close, contentDescription = "Remove Image", modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = "Auto-Attached Image",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                )
+                            }
+                        }
+                    }
+
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
@@ -118,7 +216,7 @@ fun AddArticleDialog(
                     OutlinedTextField(
                         value = thumbnailUrl,
                         onValueChange = { thumbnailUrl = it },
-                        label = { Text("Thumbnail Image URL (Optional)") },
+                        label = { Text("Thumbnail Image URL (Auto-detected)") },
                         placeholder = { Text("https://image.url/photo.jpg") },
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp),
@@ -187,19 +285,18 @@ fun AddArticleDialog(
                     ) {
                         Text("Cancel")
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            if (url.isNotBlank() || title.isNotBlank()) {
+                            if (title.isNotBlank() || url.isNotBlank()) {
                                 onSave(url, title, thumbnailUrl, summary, notes, hashtags, linkedIds)
-                                onDismiss()
                             }
                         },
-                        enabled = url.isNotBlank() || title.isNotBlank(),
+                        enabled = title.isNotBlank() || url.isNotBlank(),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("save_article_button")
                     ) {
-                        Text("Save Note")
+                        Text("Save Note", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -208,11 +305,14 @@ fun AddArticleDialog(
 
     if (showLinkPickerDialog) {
         LinkPostPickerDialog(
-            currentArticleId = 0L,
             allArticles = allArticles,
             initialSelectedIds = linkedIds,
+            currentArticleId = null,
             onDismiss = { showLinkPickerDialog = false },
-            onSaveLinks = { linkedIds = it }
+            onSaveLinks = { selected ->
+                linkedIds = selected
+                showLinkPickerDialog = false
+            }
         )
     }
 }

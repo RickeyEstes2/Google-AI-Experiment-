@@ -18,9 +18,9 @@ import com.example.ui.theme.AppIcons
 
 @Composable
 fun LinkPostPickerDialog(
-    currentArticleId: Long,
     allArticles: List<Article>,
     initialSelectedIds: List<Long>,
+    currentArticleId: Long? = null,
     onDismiss: () -> Unit,
     onSaveLinks: (List<Long>) -> Unit
 ) {
@@ -29,7 +29,7 @@ fun LinkPostPickerDialog(
 
     val candidates = remember(allArticles, currentArticleId, searchQuery) {
         allArticles
-            .filter { it.id != currentArticleId }
+            .filter { currentArticleId == null || it.id != currentArticleId }
             .filter {
                 if (searchQuery.isBlank()) true
                 else it.title.contains(searchQuery, ignoreCase = true) ||
@@ -58,10 +58,16 @@ fun LinkPostPickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Link Knowledge Notes",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Column {
+                        Text(
+                            text = "Link Related Notes",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "${selectedIds.size} notes selected to link",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
+                        )
+                    }
                     IconButton(onClick = onDismiss) {
                         Icon(AppIcons.Close, contentDescription = "Close")
                     }
@@ -70,50 +76,73 @@ fun LinkPostPickerDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search links by title or tag...") },
-                    leadingIcon = { Icon(AppIcons.Search, contentDescription = null) },
+                    placeholder = { Text("Search notes to link...") },
+                    leadingIcon = { Icon(AppIcons.Search, contentDescription = "Search") },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(candidates, key = { it.id }) { item ->
-                        val isSelected = selectedIds.contains(item.id)
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedIds = if (isSelected) selectedIds - item.id else selectedIds + item.id
-                                }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Checkbox(
-                                    checked = isSelected,
-                                    onCheckedChange = {
-                                        selectedIds = if (isSelected) selectedIds - item.id else selectedIds + item.id
+                    if (candidates.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No other notes found to link.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    } else {
+                        items(candidates, key = { it.id }) { item ->
+                            val isChecked = selectedIds.contains(item.id)
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isChecked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedIds = if (isChecked) {
+                                            selectedIds - item.id
+                                        } else {
+                                            selectedIds + item.id
+                                        }
                                     }
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = item.title,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = item.domain,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = item.title,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = item.domain,
+                                            style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        )
+                                    }
+                                    Checkbox(
+                                        checked = isChecked,
+                                        onCheckedChange = { checked ->
+                                            selectedIds = if (checked) {
+                                                selectedIds + item.id
+                                            } else {
+                                                selectedIds - item.id
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -125,7 +154,10 @@ fun LinkPostPickerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(8.dp)) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
                         Text("Cancel")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -136,9 +168,7 @@ fun LinkPostPickerDialog(
                         },
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Apply (${selectedIds.size})")
+                        Text("Save Connections")
                     }
                 }
             }

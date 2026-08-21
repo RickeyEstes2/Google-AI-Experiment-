@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,13 +18,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.Article
 import com.example.ui.components.*
-import com.example.ui.theme.AppIcons
+import com.example.ui.theme.*
 import com.example.ui.viewmodel.LinkFilter
 import com.example.ui.viewmodel.MastermindViewModel
 import kotlinx.coroutines.delay
@@ -52,7 +54,7 @@ fun MastermindMainScreen(
     var articleForQuickTag by remember { mutableStateOf<Article?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Live Clock State (12-hour format, Day of the week, Day of the month, Month, Year)
+    // Live Clock State (Format: Thursday, August 20, 2026 · 09:31:25 PM)
     var currentTimeFormatted by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         val clockFormat = SimpleDateFormat("EEEE, MMMM d, yyyy · hh:mm:ss a", Locale.getDefault())
@@ -74,17 +76,15 @@ fun MastermindMainScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 2.dp,
-                border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                color = DeepDarkBackground,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // App Bar Title & Badges
                     Row(
@@ -94,19 +94,20 @@ fun MastermindMainScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            // White Rounded Square Menu Button
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(38.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.White,
+                                modifier = Modifier.size(42.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = AppIcons.Storage,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(22.dp)
+                                        imageVector = AppIcons.Menu,
+                                        contentDescription = "Menu",
+                                        tint = Color(0xFF0F172A),
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
                             }
@@ -114,31 +115,44 @@ fun MastermindMainScreen(
                                 Text(
                                     text = "Database Mastermind",
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.ExtraBold,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 19.sp,
                                         letterSpacing = (-0.2).sp
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = Color.White
                                 )
                                 Text(
                                     text = "Personal Knowledge Base & Notes",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                                    color = TextMuted
                                 )
                             }
                         }
 
-                        // Total count chip
+                        // Vertical Notes Pill Badge
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            shape = RoundedCornerShape(14.dp),
+                            color = CardSurfaceDark,
+                            border = BorderStroke(1.dp, BorderDark),
+                            modifier = Modifier.width(28.dp)
                         ) {
-                            Text(
-                                text = "${allArticles.size} Notes",
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "${allArticles.size}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color.White
+                                )
+                                Text("N", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
+                                Text("o", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
+                                Text("t", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
+                                Text("e", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
+                                Text("s", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
+                            }
                         }
                     }
 
@@ -154,15 +168,15 @@ fun MastermindMainScreen(
                             Icon(
                                 imageVector = AppIcons.Schedule,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(13.dp)
+                                tint = TextMuted,
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = currentTimeFormatted,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextMuted
                                 )
                             )
                         }
@@ -172,22 +186,39 @@ fun MastermindMainScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { viewModel.setSearchQuery(it) },
-                        placeholder = { Text("Search titles, notes, tags, math formulas...", fontSize = 13.sp) },
+                        placeholder = {
+                            Text(
+                                "Search titles, notes, tags,\nmath formulas...",
+                                fontSize = 13.5.sp,
+                                color = TextMuted,
+                                lineHeight = 18.sp
+                            )
+                        },
                         leadingIcon = {
-                            Icon(AppIcons.Search, contentDescription = "Search", modifier = Modifier.size(18.dp))
+                            Icon(
+                                AppIcons.Search,
+                                contentDescription = "Search",
+                                tint = TextMuted,
+                                modifier = Modifier.size(19.dp)
+                            )
                         },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                    Icon(AppIcons.Clear, contentDescription = "Clear search", modifier = Modifier.size(16.dp))
+                                    Icon(AppIcons.Clear, contentDescription = "Clear search", tint = TextMuted, modifier = Modifier.size(16.dp))
                                 }
                             }
                         },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        singleLine = false,
+                        maxLines = 2,
+                        shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            focusedContainerColor = MaterialTheme.colorScheme.surface
+                            unfocusedContainerColor = CardSurfaceDark,
+                            focusedContainerColor = CardSurfaceDark,
+                            unfocusedBorderColor = BorderDark,
+                            focusedBorderColor = SkyBlue500,
+                            unfocusedTextColor = Color.White,
+                            focusedTextColor = Color.White
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -197,61 +228,80 @@ fun MastermindMainScreen(
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
+            // White Pill Floating Action Button
+            Surface(
                 onClick = { viewModel.openAddDialog() },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.testTag("add_article_fab")
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White,
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .height(48.dp)
+                    .testTag("add_article_fab")
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp),
+                    modifier = Modifier.padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(AppIcons.Add, contentDescription = "Add Note")
-                    Text("Add Note", fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = AppIcons.Add,
+                        contentDescription = "Add Note",
+                        tint = Color(0xFF0F172A),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Add Note",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color(0xFF0F172A)
+                    )
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = DeepDarkBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Category Filter Row
+            // Category Filter Row 1
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(LinkFilter.values()) { filter ->
                     val isSelected = selectedFilter == filter
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.setFilter(filter) },
-                        label = {
-                            Text(
-                                text = when (filter) {
-                                    LinkFilter.ALL -> "All (${allArticles.size})"
-                                    LinkFilter.FAVORITES -> "★ Favorites (${allArticles.count { it.isFavorite }})"
-                                    LinkFilter.RECENT -> "Recent"
-                                    LinkFilter.HAS_NOTES -> "With Notes (${allArticles.count { it.notes.isNotBlank() }})"
-                                },
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 12.sp
-                            )
-                        },
-                        shape = RoundedCornerShape(20.dp)
-                    )
+                    val labelText = when (filter) {
+                        LinkFilter.ALL -> "All (${allArticles.size})"
+                        LinkFilter.FAVORITES -> "★ Favorites (${allArticles.count { it.isFavorite }})"
+                        LinkFilter.RECENT -> "Recent"
+                        LinkFilter.HAS_NOTES -> "With Notes (${allArticles.count { it.notes.isNotBlank() }})"
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) CardElevatedDark else Color.Transparent,
+                        border = BorderStroke(1.dp, if (isSelected) BorderDark else BorderDark),
+                        modifier = Modifier.clickable { viewModel.setFilter(filter) }
+                    ) {
+                        Text(
+                            text = labelText,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 12.sp,
+                                color = if (isSelected) Color.White else TextMuted
+                            ),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp)
+                        )
+                    }
                 }
             }
 
-            // Hashtag & Label Filter Row
+            // Hashtags / Labels Filter Row 2
             if (availableHashtags.isNotEmpty()) {
                 LazyRow(
                     modifier = Modifier
@@ -263,16 +313,27 @@ fun MastermindMainScreen(
                     item {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = CardSurfaceDark,
+                            border = BorderStroke(1.dp, BorderDark),
                             modifier = Modifier.padding(end = 2.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
-                                Icon(AppIcons.Label, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
-                                Text("Tags:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Icon(
+                                    imageVector = AppIcons.Label,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = Color.White
+                                )
+                                Text(
+                                    text = "Tags:",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
                             }
                         }
                     }
@@ -281,21 +342,22 @@ fun MastermindMainScreen(
                         val isSelected = selectedHashtag.equals(tag, ignoreCase = true)
                         val count = allArticles.count { it.hashtags.any { t -> t.equals(tag, ignoreCase = true) } }
 
-                        SuggestionChip(
-                            onClick = { viewModel.setHashtag(tag) },
-                            label = {
-                                Text(
-                                    text = "$tag ($count)",
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                            ),
-                            border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) CardElevatedDark else CardSurfaceDark,
+                            border = BorderStroke(1.dp, if (isSelected) SkyBlue500 else BorderDark),
+                            modifier = Modifier.clickable { viewModel.setHashtag(tag) }
+                        ) {
+                            Text(
+                                text = "$tag ($count)",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.5.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else TextMuted
+                                ),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -310,31 +372,32 @@ fun MastermindMainScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = CardSurfaceDark,
+                            border = BorderStroke(1.dp, BorderDark),
                             modifier = Modifier.size(64.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = AppIcons.Search,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(32.dp)
+                                    tint = TextMuted,
+                                    modifier = Modifier.size(30.dp)
                                 )
                             }
                         }
                         Text(
                             text = if (searchQuery.isNotBlank() || selectedHashtag != null) "No matching notes found" else "Your database is empty",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White)
                         )
                         Text(
                             text = if (searchQuery.isNotBlank() || selectedHashtag != null) "Try adjusting your search query or removing tag filters." else "Tap '+ Add Note' below to store your first link, article, or research note.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            color = TextMuted,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -362,71 +425,82 @@ fun MastermindMainScreen(
         }
     }
 
-    // Modal Dialogs
+    // Quick Tag Edit Dialog
+    articleForQuickTag?.let { article ->
+        QuickTagAssignDialog(
+            articleTitle = article.title,
+            currentTags = article.hashtags,
+            allAvailableTags = availableHashtags,
+            onDismiss = { articleForQuickTag = null },
+            onSaveTags = { updatedTags ->
+                viewModel.updateHashtags(article.id, updatedTags)
+                articleForQuickTag = null
+            }
+        )
+    }
+
+    // Full Reader Screen / Dialog
+    readingArticle?.let { article ->
+        ArticleReaderDialog(
+            article = article,
+            linkedArticles = linkedArticles,
+            allAvailableTags = availableHashtags,
+            onDismiss = { viewModel.closeReader() },
+            onEdit = {
+                viewModel.closeReader()
+                viewModel.openEditDialog(article)
+            },
+            onToggleFavorite = { viewModel.toggleFavorite(article) },
+            onDelete = {
+                viewModel.deleteLink(article)
+            },
+            onUpdateHashtags = { updatedTags ->
+                viewModel.updateHashtags(article.id, updatedTags)
+            },
+            onLinkedArticleClick = { linked ->
+                viewModel.openReader(linked)
+            },
+            onHashtagClick = { tag ->
+                viewModel.closeReader()
+                viewModel.setHashtag(tag)
+            }
+        )
+    }
+
+    // Add Dialog
     if (showAddDialog) {
         AddArticleDialog(
             allArticles = allArticles,
             availableTags = availableHashtags,
             initialUrl = pendingInitialData?.url ?: "",
             initialTitle = pendingInitialData?.title ?: "",
+            initialThumbnailUrl = pendingInitialData?.thumbnailUrl ?: "",
+            initialSummary = pendingInitialData?.summary ?: "",
             initialNotes = pendingInitialData?.notes ?: "",
             initialHashtags = pendingInitialData?.hashtags ?: emptyList(),
             isFromShare = pendingInitialData != null,
             onDismiss = { viewModel.closeAddDialog() },
             onSave = { url, title, thumb, sum, notes, tags, links ->
                 viewModel.addLink(url, title, thumb, sum, notes, tags, links)
+                viewModel.closeAddDialog()
             }
         )
     }
 
-    editingArticle?.let { articleToEdit ->
+    // Edit Dialog
+    editingArticle?.let { article ->
         EditArticleDialog(
-            article = articleToEdit,
+            article = article,
             allArticles = allArticles,
             availableTags = availableHashtags,
             onDismiss = { viewModel.closeEditDialog() },
-            onSave = { updated -> viewModel.updateLink(updated) },
-            onDelete = { toDelete -> viewModel.deleteLink(toDelete) }
-        )
-    }
-
-    readingArticle?.let { articleToRead ->
-        ArticleReaderDialog(
-            article = articleToRead,
-            linkedArticles = linkedArticles,
-            allAvailableTags = availableHashtags,
-            onDismiss = { viewModel.closeReader() },
-            onEdit = {
-                viewModel.closeReader()
-                viewModel.openEditDialog(articleToRead)
+            onSave = { updated ->
+                viewModel.updateLink(updated)
+                viewModel.closeEditDialog()
             },
-            onToggleFavorite = { viewModel.toggleFavorite(articleToRead) },
-            onDelete = {
-                viewModel.deleteLink(articleToRead)
-            },
-            onUpdateHashtags = { newTags ->
-                viewModel.updateHashtags(articleToRead.id, newTags)
-            },
-            onLinkedArticleClick = { clicked ->
-                viewModel.openReader(clicked)
-            },
-            onHashtagClick = { tag ->
-                viewModel.setHashtag(tag)
-                viewModel.closeReader()
-            }
-        )
-    }
-
-    // Quick Tag & Label Assign Dialog
-    articleForQuickTag?.let { targetArticle ->
-        QuickTagAssignDialog(
-            articleTitle = targetArticle.title,
-            currentTags = targetArticle.hashtags,
-            allAvailableTags = availableHashtags,
-            onDismiss = { articleForQuickTag = null },
-            onSaveTags = { newTags ->
-                viewModel.updateHashtags(targetArticle.id, newTags)
-                articleForQuickTag = null
+            onDelete = { toDelete ->
+                viewModel.deleteLink(toDelete)
+                viewModel.closeEditDialog()
             }
         )
     }

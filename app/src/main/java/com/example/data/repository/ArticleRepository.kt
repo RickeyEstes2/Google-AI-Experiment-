@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import com.example.data.db.ArticleDao
 import com.example.data.model.Article
+import com.example.util.LinkMetadataFetcher
 import kotlinx.coroutines.flow.Flow
 import java.net.URI
 
@@ -23,12 +24,33 @@ class ArticleRepository(private val articleDao: ArticleDao) {
         linkedIds: List<Long> = emptyList()
     ): Long {
         val domain = extractDomain(url)
+        
+        // Auto-fetch image and metadata if thumbnail is blank and URL is provided
+        var resolvedThumbnail = thumbnailUrl.trim()
+        var resolvedTitle = title.trim()
+        var resolvedSummary = summary.trim()
+
+        if (resolvedThumbnail.isBlank() && url.isNotBlank()) {
+            try {
+                val meta = LinkMetadataFetcher.fetchMetadata(url)
+                if (!meta.imageUrl.isNullOrBlank()) {
+                    resolvedThumbnail = meta.imageUrl
+                }
+                if (resolvedTitle.isBlank() && !meta.title.isNullOrBlank()) {
+                    resolvedTitle = meta.title
+                }
+                if (resolvedSummary.isBlank() && !meta.description.isNullOrBlank()) {
+                    resolvedSummary = meta.description
+                }
+            } catch (_: Exception) {}
+        }
+
         val article = Article(
             url = url.trim(),
-            title = title.ifBlank { "Untitled Note" }.trim(),
+            title = resolvedTitle.ifBlank { "Untitled Note" }.trim(),
             domain = domain,
-            thumbnailUrl = thumbnailUrl.trim(),
-            summary = summary.trim(),
+            thumbnailUrl = resolvedThumbnail,
+            summary = resolvedSummary,
             notes = notes.trim(),
             hashtags = hashtags.map { it.trim() }.filter { it.isNotBlank() },
             linkedArticleIds = linkedIds,
@@ -39,8 +61,19 @@ class ArticleRepository(private val articleDao: ArticleDao) {
     }
 
     suspend fun updateArticle(article: Article) {
+        var finalThumb = article.thumbnailUrl.trim()
+        if (finalThumb.isBlank() && article.url.isNotBlank()) {
+            try {
+                val meta = LinkMetadataFetcher.fetchMetadata(article.url)
+                if (!meta.imageUrl.isNullOrBlank()) {
+                    finalThumb = meta.imageUrl
+                }
+            } catch (_: Exception) {}
+        }
+
         val updated = article.copy(
             domain = extractDomain(article.url),
+            thumbnailUrl = finalThumb,
             updatedAt = System.currentTimeMillis()
         )
         articleDao.updateArticle(updated)
@@ -70,6 +103,20 @@ class ArticleRepository(private val articleDao: ArticleDao) {
     suspend fun seedSampleDataIfEmpty() {
         val count = articleDao.getArticleCount()
         if (count == 0) {
+            insertArticle(
+                url = "https://material.io/design",
+                title = "Material Design 3 Principles & Ergonomics",
+                thumbnailUrl = "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600&auto=format&fit=crop&q=80",
+                summary = "Design system guidelines for accessible, colorful, and responsive interfaces.",
+                notes = """
+                    ### Color & Typography Roles
+                    1. **Primary / Secondary**: Brand accentuation and structural grouping.
+                    2. **Surface & Background**: High contrast readability and neutral elevation.
+                    3. **Touch Targets**: Minimum 48dp interactive boundaries.
+                """.trimIndent(),
+                hashtags = listOf("#Design", "#Ideas", "#Work")
+            )
+
             insertArticle(
                 url = "https://developer.android.com/jetpack/compose",
                 title = "Jetpack Compose Modern UI Guide",
@@ -104,20 +151,6 @@ class ArticleRepository(private val articleDao: ArticleDao) {
                     $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)W^O$$
                 """.trimIndent(),
                 hashtags = listOf("#Research", "#AI", "#Finance")
-            )
-
-            insertArticle(
-                url = "https://material.io/design",
-                title = "Material Design 3 Principles & Ergonomics",
-                thumbnailUrl = "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=600&auto=format&fit=crop&q=80",
-                summary = "Design system guidelines for accessible, colorful, and responsive interfaces.",
-                notes = """
-                    ### Color & Typography Roles
-                    1. **Primary / Secondary**: Brand accentuation and structural grouping.
-                    2. **Surface & Background**: High contrast readability and neutral elevation.
-                    3. **Touch Targets**: Minimum 48dp interactive boundaries.
-                """.trimIndent(),
-                hashtags = listOf("#Design", "#Ideas", "#Work")
             )
         }
     }
