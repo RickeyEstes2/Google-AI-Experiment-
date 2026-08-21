@@ -1,455 +1,165 @@
 package com.example.ui.components
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.data.model.Article
+import com.example.ui.theme.AppIcons
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArticleReaderDialog(
     article: Article,
-    linkedArticles: List<Article>,
-    backStackDepth: Int = 0,
+    linkedArticles: List<Article> = emptyList(),
+    allAvailableTags: List<String> = emptyList(),
     onDismiss: () -> Unit,
-    onNavigateBack: () -> Unit,
-    onNavigateToLinkedArticle: (Article) -> Unit,
-    onOpenEditPost: () -> Unit,
+    onEdit: () -> Unit,
     onToggleFavorite: () -> Unit,
     onDelete: () -> Unit,
-    onUpdateNotes: (newNotes: String) -> Unit,
-    onUpdateHashtags: (newHashtags: List<String>) -> Unit,
-    onAddComment: (commentText: String) -> Unit,
-    onDeleteComment: (commentId: String) -> Unit,
-    onUpdateComment: (commentId: String, newText: String) -> Unit,
-    onHashtagClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+    onUpdateHashtags: (List<String>) -> Unit,
+    onLinkedArticleClick: (Article) -> Unit = {},
+    onHashtagClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val formattedDate = SimpleDateFormat("MMMM dd, yyyy • h:mm a", Locale.getDefault()).format(Date(article.createdTimestamp))
+    val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault()) }
 
-    var newCommentText by remember { mutableStateOf("") }
-    var newTagInput by remember { mutableStateOf("") }
-    var isAddingTag by remember { mutableStateOf(false) }
-    var editingTagOldValue by remember { mutableStateOf<String?>(null) }
-    var editingTagInput by remember { mutableStateOf("") }
-
-    // LaTeX, Chart & Venn Dialog states
-    var showInsertLatex by remember { mutableStateOf(false) }
-    var showInsertChart by remember { mutableStateOf(false) }
-    var showInsertVenn by remember { mutableStateOf(false) }
-    var insertTarget by remember { mutableStateOf("notes") } // "notes" or "comment"
-
-    if (showInsertLatex) {
-        InsertLatexDialog(
-            onDismiss = { showInsertLatex = false },
-            onInsertFormula = { latexCode ->
-                if (insertTarget == "comment") {
-                    newCommentText = if (newCommentText.isBlank()) latexCode else "$newCommentText\n\n$latexCode"
-                } else {
-                    onUpdateNotes(if (article.notes.isBlank()) latexCode else "${article.notes}\n\n$latexCode")
-                }
-                showInsertLatex = false
-            }
-        )
-    }
-
-    if (showInsertChart) {
-        InsertChartDialog(
-            onDismiss = { showInsertChart = false },
-            onInsertChart = { chartCode ->
-                if (insertTarget == "comment") {
-                    newCommentText = if (newCommentText.isBlank()) chartCode else "$newCommentText\n\n$chartCode"
-                } else {
-                    onUpdateNotes(if (article.notes.isBlank()) chartCode else "${article.notes}\n\n$chartCode")
-                }
-                showInsertChart = false
-            }
-        )
-    }
-
-    if (showInsertVenn) {
-        InsertVennDialog(
-            onDismiss = { showInsertVenn = false },
-            onInsertVenn = { vennCode ->
-                if (insertTarget == "comment") {
-                    newCommentText = if (newCommentText.isBlank()) vennCode else "$newCommentText\n\n$vennCode"
-                } else {
-                    onUpdateNotes(if (article.notes.isBlank()) vennCode else "${article.notes}\n\n$vennCode")
-                }
-                showInsertVenn = false
-            }
-        )
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(top = 28.dp),
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            color = MaterialTheme.colorScheme.background
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.92f)
+                .padding(vertical = 8.dp)
+                .testTag("article_reader_dialog")
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Top App Bar
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Top Header Controls
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        IconButton(
-                            onClick = {
-                                if (backStackDepth > 0) {
-                                    onNavigateBack()
-                                } else {
-                                    onDismiss()
-                                }
-                            },
-                            modifier = Modifier.testTag("close_link_reader")
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = if (backStackDepth > 0) "Previous Linked Post" else "Back"
-                            )
-                        }
-
-                        if (backStackDepth > 0) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
-                            ) {
-                                Text(
-                                    text = "Linked Stack ($backStackDepth)",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
+                    IconButton(onClick = onDismiss) {
+                        Icon(AppIcons.Close, contentDescription = "Close")
                     }
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Edit post full dialog button
-                        IconButton(onClick = onOpenEditPost) {
-                            Icon(
-                                imageVector = Icons.Outlined.Edit,
-                                contentDescription = "Edit Post",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
                         IconButton(onClick = onToggleFavorite) {
                             Icon(
-                                imageVector = if (article.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                imageVector = if (article.isFavorite) AppIcons.Favorite else AppIcons.FavoriteBorder,
                                 contentDescription = "Favorite",
-                                tint = if (article.isFavorite) Color(0xFFE11D48) else MaterialTheme.colorScheme.onSurface
+                                tint = if (article.isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        IconButton(onClick = onDelete) {
-                            Icon(
-                                imageVector = Icons.Outlined.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                        IconButton(onClick = onEdit) {
+                            Icon(AppIcons.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+
+                        if (article.url.startsWith("http")) {
+                            IconButton(onClick = {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(article.url))
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            }) {
+                                Icon(AppIcons.OpenInNew, contentDescription = "Open URL in browser", tint = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
                 // Scrollable Content
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Preview image if available
+                    // Optional Thumbnail Image
                     if (article.thumbnailUrl.isNotBlank()) {
-                        Box(
+                        AsyncImage(
+                            model = article.thumbnailUrl,
+                            contentDescription = "Thumbnail",
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(180.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            AsyncImage(
-                                model = article.thumbnailUrl,
-                                contentDescription = "Preview Image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
-
-                    // Domain badge & Timestamp
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                text = article.sourceDomain,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
-
-                        Text(
-                            text = formattedDate,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                                .clip(RoundedCornerShape(12.dp))
                         )
                     }
 
                     // Title
                     Text(
                         text = article.title,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 30.sp
-                        ),
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    // Target URL & Open actions
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "TARGET URL",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                                Text(
-                                    text = "Chrome Link",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                )
-                            }
-                            Text(
-                                text = article.url,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-                        }
-                    }
-
-                    // Primary Action Buttons
+                    // Meta: Domain & Timestamp
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
-                            onClick = {
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(article.url))
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Could not open browser: ${e.message}", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
-                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Open in Chrome")
+                            Text(
+                                text = article.domain,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
                         }
 
-                        OutlinedButton(
-                            onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("URL", article.url)
-                                clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                            },
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy")
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val sendIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, article.url)
-                                    putExtra(Intent.EXTRA_SUBJECT, article.title)
-                                    type = "text/plain"
-                                }
-                                val shareIntent = Intent.createChooser(sendIntent, "Share link")
-                                shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(shareIntent)
-                            },
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
+                        Text(
+                            text = dateFormat.format(Date(article.updatedAt)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
-                    // Linked Posts Section
-                    if (linkedArticles.isNotEmpty()) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // Hyperlink Box if valid web URL
+                    if (article.url.startsWith("http")) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
+                                modifier = Modifier.padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Link, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                Text(
-                                    text = "Linked Posts (${linkedArticles.size})",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                linkedArticles.forEach { linked ->
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { onNavigateToLinkedArticle(linked) },
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                                        )
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(12.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.weight(1f),
-                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                if (linked.thumbnailUrl.isNotBlank()) {
-                                                    AsyncImage(
-                                                        model = linked.thumbnailUrl,
-                                                        contentDescription = null,
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier
-                                                            .size(40.dp)
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                    )
-                                                } else {
-                                                    Surface(
-                                                        shape = RoundedCornerShape(8.dp),
-                                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                                        modifier = Modifier.size(40.dp)
-                                                    ) {
-                                                        Box(contentAlignment = Alignment.Center) {
-                                                            Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                                        }
-                                                    }
-                                                }
-
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        text = linked.title,
-                                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                                        maxLines = 1
-                                                    )
-                                                    Text(
-                                                        text = linked.sourceDomain,
-                                                        style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.primary)
-                                                    )
-                                                }
-                                            }
-
-                                            Icon(
-                                                imageVector = Icons.Default.ChevronRight,
-                                                contentDescription = "Open Linked Post",
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
+                                Icon(AppIcons.Link, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                HyperlinkText(text = article.url, modifier = Modifier.weight(1f))
                             }
                         }
                     }
@@ -457,339 +167,25 @@ fun ArticleReaderDialog(
                     // Custom Labels & Tags Section
                     LabelTagPicker(
                         selectedTags = article.hashtags,
-                        onTagsChanged = { onUpdateHashtags(it) }
+                        onTagsChanged = { onUpdateHashtags(it) },
+                        allAvailableTags = allAvailableTags
                     )
 
-                    // Summary Section
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Outlined.Subject, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                            Text("Summary", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                if (article.summary.isNotBlank()) {
-                                    RichArticleContent(
-                                        rawContent = article.summary,
-                                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                                        onHashtagClick = { tag ->
-                                            onHashtagClick(tag)
-                                            onDismiss()
-                                        }
-                                    )
-                                } else {
-                                    Text(
-                                        text = "No summary provided. Tap Edit to add a summary.",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Notes Section (with Rich formatting + LaTeX + Charts + Venn + Word styling)
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Outlined.EditNote, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
-                                Text("Notes & Takeaways", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                            }
-                            Text(
-                                text = "Long press word to format",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 11.sp
-                                )
-                            )
-                        }
-
-                        // Toolbar for inserting LaTeX, Charts, Venn Diagrams directly into Notes
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            SuggestionChip(
-                                onClick = {
-                                    insertTarget = "notes"
-                                    showInsertLatex = true
-                                },
-                                label = { Text("+ LaTeX Formula", fontSize = 11.sp) },
-                                icon = { Icon(Icons.Default.Functions, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                            )
-
-                            SuggestionChip(
-                                onClick = {
-                                    insertTarget = "notes"
-                                    showInsertChart = true
-                                },
-                                label = { Text("+ Chart", fontSize = 11.sp) },
-                                icon = { Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                            )
-
-                            SuggestionChip(
-                                onClick = {
-                                    insertTarget = "notes"
-                                    showInsertVenn = true
-                                },
-                                label = { Text("+ Venn Diagram", fontSize = 11.sp) },
-                                icon = { Icon(Icons.Default.DonutSmall, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                if (article.notes.isNotBlank()) {
-                                    RichArticleContent(
-                                        rawContent = article.notes,
-                                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                                        onHashtagClick = { tag ->
-                                            onHashtagClick(tag)
-                                            onDismiss()
-                                        },
-                                        onTextFormatted = { updatedNotes ->
-                                            onUpdateNotes(updatedNotes)
-                                        }
-                                    )
-                                } else {
-                                    Text(
-                                        text = "No notes written yet. Tap above buttons to insert LaTeX, Charts, or Venn diagrams.",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(vertical = 4.dp)
+                    // Rich Content Renderer
+                    RichArticleContent(
+                        article = article,
+                        linkedArticles = linkedArticles,
+                        onLinkedArticleClick = onLinkedArticleClick
                     )
+                }
 
-                    // Hyperlinkable Comments Section
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-                                Text(
-                                    text = "Hyperlinkable Comments (${article.comments.size})",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        }
-
-                        // Add Comment Input
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = newCommentText,
-                                    onValueChange = { newCommentText = it },
-                                    placeholder = { Text("Write a comment with links, LaTeX, or #tag...", fontSize = 13.sp) },
-                                    minLines = 2,
-                                    maxLines = 4,
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        IconButton(
-                                            onClick = {
-                                                insertTarget = "comment"
-                                                showInsertLatex = true
-                                            },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(Icons.Default.Functions, contentDescription = "Insert LaTeX", modifier = Modifier.size(16.dp))
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                insertTarget = "comment"
-                                                showInsertChart = true
-                                            },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(Icons.Default.BarChart, contentDescription = "Insert Chart", modifier = Modifier.size(16.dp))
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                insertTarget = "comment"
-                                                showInsertVenn = true
-                                            },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(Icons.Default.DonutSmall, contentDescription = "Insert Venn", modifier = Modifier.size(16.dp))
-                                        }
-                                    }
-
-                                    Button(
-                                        onClick = {
-                                            if (newCommentText.isNotBlank()) {
-                                                onAddComment(newCommentText)
-                                                newCommentText = ""
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(10.dp),
-                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Post Comment", modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Post Comment", fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
-
-                        // Comments List
-                        if (article.comments.isNotEmpty()) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                article.comments.forEach { comment ->
-                                    val commentDate = SimpleDateFormat("MMM d, yyyy • h:mm a", Locale.getDefault()).format(Date(comment.timestamp))
-
-                                    Surface(
-                                        shape = RoundedCornerShape(14.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(12.dp),
-                                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                ) {
-                                                    Surface(
-                                                        shape = CircleShape,
-                                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                                        modifier = Modifier.size(20.dp)
-                                                    ) {
-                                                        Box(contentAlignment = Alignment.Center) {
-                                                            Icon(Icons.Default.Comment, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
-                                                        }
-                                                    }
-                                                    Text(
-                                                        text = commentDate,
-                                                        style = MaterialTheme.typography.bodySmall.copy(
-                                                            fontSize = 11.sp,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    )
-                                                }
-
-                                                IconButton(
-                                                    onClick = { onDeleteComment(comment.id) },
-                                                    modifier = Modifier.size(24.dp)
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Close,
-                                                        contentDescription = "Delete Comment",
-                                                        tint = MaterialTheme.colorScheme.error,
-                                                        modifier = Modifier.size(14.dp)
-                                                    )
-                                                }
-                                            }
-
-                                            // Hyperlinkable & Rich Formattable Comment Text
-                                            RichArticleContent(
-                                                rawContent = comment.text,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                                                onHashtagClick = { tag ->
-                                                    onHashtagClick(tag)
-                                                    onDismiss()
-                                                },
-                                                onTextFormatted = { updatedCommentText ->
-                                                    onUpdateComment(comment.id, updatedCommentText)
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = "No comments yet. Write a comment above with clickable links or hashtags.",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                                    ),
-                                    modifier = Modifier.padding(14.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(40.dp))
+                // Footer Done Button
+                Button(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Close Note")
                 }
             }
         }

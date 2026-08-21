@@ -1,6 +1,6 @@
 {
   "name": "Database Mastermind",
-  "description": "Save links from Chrome with summaries, notes, hashtags, and hyperlinkable comments",
+  "description": "Offline-first knowledge base and personal database with custom labeling, rich markdown formatting, interactive charts, and math notation.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,6 +1,6 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,29 +9,21 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.Article
-import com.example.data.sync.SyncStatus
-import com.example.ui.components.AddArticleDialog
-import com.example.ui.components.ArticleCard
-import com.example.ui.components.ArticleReaderDialog
-import com.example.ui.components.CloudSyncDialog
-import com.example.ui.components.EditArticleDialog
-import com.example.ui.components.GoogleDriveFolderSettingsDialog
-import com.example.ui.components.GoogleDriveSyncHeaderChip
-import com.example.ui.components.GoogleDriveSyncStatusCard
-import com.example.ui.components.LinkPostPickerDialog
-import com.example.ui.components.QuickTagAssignDialog
+import com.example.ui.components.*
+import com.example.ui.theme.AppIcons
 import com.example.ui.viewmodel.LinkFilter
 import com.example.ui.viewmodel.MastermindViewModel
 import kotlinx.coroutines.delay
@@ -41,70 +33,59 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MastermindMainScreen(
-    viewModel: MastermindViewModel,
-    modifier: Modifier = Modifier
+    viewModel: MastermindViewModel = viewModel()
 ) {
-    val articles by viewModel.displayedArticles.collectAsState()
-    val allArticlesList by viewModel.allArticles.collectAsState(initial = emptyList())
-    val selectedFilter by viewModel.selectedFilter.collectAsState()
-    val selectedHashtag by viewModel.selectedHashtag.collectAsState()
-    val availableHashtags by viewModel.allAvailableHashtags.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val isAddDialogOpen by viewModel.isAddDialogOpen.collectAsState()
-    val activeArticle by viewModel.activeArticle.collectAsState()
-    val activeArticleLinkedPosts by viewModel.activeArticleLinkedPosts.collectAsState()
-    val articleBackStack by viewModel.articleBackStack.collectAsState()
-    val editingArticle by viewModel.editingArticle.collectAsState()
-    val targetArticleForLinking by viewModel.targetArticleForLinking.collectAsState()
-    val isLinkPickerOpen by viewModel.isLinkPickerOpen.collectAsState()
-    val isCloudSyncDialogOpen by viewModel.isCloudSyncDialogOpen.collectAsState()
-    val isGoogleDriveFolderSettingsOpen by viewModel.isGoogleDriveFolderSettingsOpen.collectAsState()
-    val syncManager = viewModel.cloudSyncManager
-    val syncStatus by syncManager.syncStatus.collectAsState()
-    val autoSyncEnabled by syncManager.autoSyncEnabled.collectAsState()
-    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
+    val allArticles by viewModel.allArticles.collectAsStateWithLifecycle()
+    val filteredArticles by viewModel.filteredArticles.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val selectedFilter by viewModel.selectedFilter.collectAsStateWithLifecycle()
+    val selectedHashtag by viewModel.selectedHashtag.collectAsStateWithLifecycle()
+    val availableHashtags by viewModel.availableHashtags.collectAsStateWithLifecycle()
+
+    val readingArticle by viewModel.readingArticle.collectAsStateWithLifecycle()
+    val editingArticle by viewModel.editingArticle.collectAsStateWithLifecycle()
+    val showAddDialog by viewModel.showAddDialog.collectAsStateWithLifecycle()
+    val linkedArticles by viewModel.linkedArticles.collectAsStateWithLifecycle()
+    val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
 
     var articleForQuickTag by remember { mutableStateOf<Article?>(null) }
-
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Live Clock State for Fixed Header (12-hour format, Day of the week, Day of the month, Month, Year)
-    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    // Live Clock State (12-hour format, Day of the week, Day of the month, Month, Year)
+    var currentTimeFormatted by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
+        val clockFormat = SimpleDateFormat("EEEE, MMMM d, yyyy · hh:mm:ss a", Locale.getDefault())
         while (true) {
-            currentTime = System.currentTimeMillis()
-            delay(1000L)
+            currentTimeFormatted = clockFormat.format(Date())
+            delay(1000)
         }
     }
 
-    val timeFormatter = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
-    val dateFormatter = remember { SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()) }
-
-    val formattedTime = remember(currentTime) { timeFormatter.format(Date(currentTime)) }
-    val formattedDate = remember(currentTime) { dateFormatter.format(Date(currentTime)) }
-
+    // Snackbar Trigger
     LaunchedEffect(snackbarMessage) {
-        snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearSnackbarMessage()
+        snackbarMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearSnackbar()
         }
     }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp
+                tonalElevation = 2.dp,
+                border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // App Title & Actions Row
+                    // App Bar Title & Badges
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -112,140 +93,105 @@ fun MastermindMainScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(38.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
-                                        imageVector = Icons.Default.Share,
+                                        imageVector = AppIcons.Storage,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(17.dp)
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 }
                             }
-
-                            Text(
-                                text = "Chrome Hub",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
+                            Column {
+                                Text(
+                                    text = "Database Mastermind",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = (-0.2).sp
+                                    ),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                            )
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                            ) {
                                 Text(
-                                    text = "${allArticlesList.size}",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    text = "Personal Knowledge Base & Notes",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Total count chip
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
-                            // Google Drive Sync Header Status Chip
-                            GoogleDriveSyncHeaderChip(
-                                syncManager = syncManager,
-                                onClick = { viewModel.openGoogleDriveFolderSettings() }
+                            Text(
+                                text = "${allArticles.size} Notes",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
-
-                            // Google Drive Target Folders Button
-                            IconButton(
-                                onClick = { viewModel.openGoogleDriveFolderSettings() },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .testTag("gdrive_folder_settings_header_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.FolderSpecial,
-                                    contentDescription = "Google Drive Target Folders",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            // Cloud Backup Button
-                            IconButton(
-                                onClick = { viewModel.openCloudSyncDialog() },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .testTag("cloud_sync_header_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.CloudSync,
-                                    contentDescription = "Cloud Providers & Backups",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
                         }
                     }
 
-                    // Sleek Integrated Date & Time Banner
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    // Live Clock Bar
+                    if (currentTimeFormatted.isNotEmpty()) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Schedule,
-                                    contentDescription = "Current Time",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(13.dp)
+                            Icon(
+                                imageVector = AppIcons.Schedule,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = currentTimeFormatted,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text(
-                                    text = formattedTime,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.CalendarToday,
-                                    contentDescription = "Current Date",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Text(
-                                    text = formattedDate,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                )
-                            }
+                            )
                         }
                     }
+
+                    // Search Bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.setSearchQuery(it) },
+                        placeholder = { Text("Search titles, notes, tags, math formulas...", fontSize = 13.sp) },
+                        leadingIcon = {
+                            Icon(AppIcons.Search, contentDescription = "Search", modifier = Modifier.size(18.dp))
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                    Icon(AppIcons.Clear, contentDescription = "Clear search", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("main_search_bar")
+                    )
                 }
             }
         },
@@ -254,222 +200,141 @@ fun MastermindMainScreen(
                 onClick = { viewModel.openAddDialog() },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = CircleShape,
-                modifier = Modifier.testTag("add_link_fab")
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.testTag("add_article_fab")
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Link")
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(AppIcons.Add, contentDescription = "Add Note")
+                    Text("Add Note", fontWeight = FontWeight.Bold)
+                }
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { innerPadding ->
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .padding(paddingValues)
         ) {
-            // Search Input
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = { Text("Search title, notes, hashtags, comments...", fontSize = 13.sp) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(18.dp))
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface
-                ),
+            // Category Filter Row
+            LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .testTag("search_links_input")
-            )
-
-            // Filter Chips (All, Favorites) + Dynamic Hashtags
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                item {
+                items(LinkFilter.values()) { filter ->
+                    val isSelected = selectedFilter == filter
                     FilterChip(
-                        selected = selectedFilter == LinkFilter.ALL,
-                        onClick = { viewModel.setFilter(LinkFilter.ALL) },
-                        label = { Text("All Links") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(16.dp))
+                        selected = isSelected,
+                        onClick = { viewModel.setFilter(filter) },
+                        label = {
+                            Text(
+                                text = when (filter) {
+                                    LinkFilter.ALL -> "All (${allArticles.size})"
+                                    LinkFilter.FAVORITES -> "★ Favorites (${allArticles.count { it.isFavorite }})"
+                                    LinkFilter.RECENT -> "Recent"
+                                    LinkFilter.HAS_NOTES -> "With Notes (${allArticles.count { it.notes.isNotBlank() }})"
+                                },
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 12.sp
+                            )
                         },
                         shape = RoundedCornerShape(20.dp)
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = selectedFilter == LinkFilter.FAVORITES,
-                        onClick = { viewModel.setFilter(LinkFilter.FAVORITES) },
-                        label = { Text("Favorites") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                        },
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                }
-
-                // Dynamic Hashtag Chips
-                items(availableHashtags) { tag ->
-                    val isTagSelected = selectedHashtag.equals(tag, ignoreCase = true)
-                    FilterChip(
-                        selected = isTagSelected,
-                        onClick = {
-                            if (isTagSelected) {
-                                viewModel.setHashtag(null)
-                            } else {
-                                viewModel.setHashtag(tag)
-                            }
-                        },
-                        label = { Text(tag) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Tag, contentDescription = null, modifier = Modifier.size(14.dp))
-                        },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
                     )
                 }
             }
 
-            // Active Hashtag Filter Banner
-            AnimatedVisibility(visible = selectedHashtag != null) {
-                selectedHashtag?.let { tag ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(text = "Filtered by tag:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Hashtag & Label Filter Row
+            if (availableHashtags.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.clickable { viewModel.setHashtag(null) }
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.padding(end = 2.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(
-                                    text = tag,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear tag filter",
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(14.dp)
-                                )
+                                Icon(AppIcons.Label, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
+                                Text("Tags:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
+                    }
+
+                    items(availableHashtags) { tag ->
+                        val isSelected = selectedHashtag.equals(tag, ignoreCase = true)
+                        val count = allArticles.count { it.hashtags.any { t -> t.equals(tag, ignoreCase = true) } }
+
+                        SuggestionChip(
+                            onClick = { viewModel.setHashtag(tag) },
+                            label = {
+                                Text(
+                                    text = "$tag ($count)",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                            ),
+                            border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+                            shape = RoundedCornerShape(16.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Visual Sync Status Indicator for Google Drive
-            GoogleDriveSyncStatusCard(
-                syncManager = syncManager,
-                onOpenFolderSettings = { viewModel.openGoogleDriveFolderSettings() },
-                onOpenCloudSync = { viewModel.openCloudSyncDialog() },
-                totalLocalArticles = allArticlesList.size,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-
-            // Main List or Empty State
-            if (articles.isEmpty()) {
+            // Feed / Empty State
+            if (filteredArticles.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
+                        .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                            modifier = Modifier.size(72.dp)
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.size(64.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Share,
+                                    imageVector = AppIcons.Search,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(36.dp)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(32.dp)
                                 )
                             }
                         }
-
                         Text(
-                            text = if (searchQuery.isNotBlank() || selectedHashtag != null) "No matching links found" else "No saved links yet",
+                            text = if (searchQuery.isNotBlank() || selectedHashtag != null) "No matching notes found" else "Your database is empty",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
-
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Text(
-                                    text = "How to Share from Google Chrome:",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                                Text(
-                                    text = "1. Open any website in Google Chrome.\n2. Tap the three dots (⋮) menu in Chrome.\n3. Tap Share... and choose Chrome Hub.\n4. Your link, summary, notes, preview image, and hashtags are saved!",
-                                    style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Button(
-                            onClick = { viewModel.openAddDialog() },
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Add Link Manually")
-                        }
+                        Text(
+                            text = if (searchQuery.isNotBlank() || selectedHashtag != null) "Try adjusting your search query or removing tag filters." else "Tap '+ Add Note' below to store your first link, article, or research note.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 }
             } else {
@@ -477,13 +342,13 @@ fun MastermindMainScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(articles, key = { it.id }) { article ->
+                    items(filteredArticles, key = { it.id }) { article ->
                         ArticleCard(
                             article = article,
-                            onClick = { viewModel.openArticle(article) },
+                            onClick = { viewModel.openReader(article) },
                             onEdit = { viewModel.openEditDialog(article) },
                             onToggleFavorite = { viewModel.toggleFavorite(article) },
                             onDelete = { viewModel.deleteLink(article) },
@@ -496,117 +361,52 @@ fun MastermindMainScreen(
         }
     }
 
-    // Add Link Dialog
-    if (isAddDialogOpen) {
+    // Modal Dialogs
+    if (showAddDialog) {
         AddArticleDialog(
+            allArticles = allArticles,
+            availableTags = availableHashtags,
             onDismiss = { viewModel.closeAddDialog() },
-            onSave = { url, title, thumbnailUrl, summary, notes, hashtags ->
-                viewModel.addNewLink(
-                    url = url,
-                    title = title,
-                    thumbnailUrl = thumbnailUrl,
-                    summary = summary,
-                    notes = notes,
-                    hashtags = hashtags
-                )
+            onSave = { url, title, thumb, sum, notes, tags, links ->
+                viewModel.addLink(url, title, thumb, sum, notes, tags, links)
             }
         )
     }
 
-    // Edit Post Dialog
     editingArticle?.let { articleToEdit ->
         EditArticleDialog(
             article = articleToEdit,
-            allArticles = allArticlesList,
+            allArticles = allArticles,
+            availableTags = availableHashtags,
             onDismiss = { viewModel.closeEditDialog() },
-            onSave = { title, url, thumbnailUrl, summary, notes, hashtags, linkedPostIds ->
-                viewModel.saveEditedArticle(
-                    id = articleToEdit.id,
-                    title = title,
-                    url = url,
-                    thumbnailUrl = thumbnailUrl,
-                    summary = summary,
-                    notes = notes,
-                    hashtags = hashtags,
-                    linkedPostIds = linkedPostIds
-                )
-            }
+            onSave = { updated -> viewModel.updateLink(updated) },
+            onDelete = { toDelete -> viewModel.deleteLink(toDelete) }
         )
     }
 
-    // Link Post Picker Dialog
-    if (isLinkPickerOpen && targetArticleForLinking != null) {
-        val target = targetArticleForLinking!!
-        LinkPostPickerDialog(
-            currentArticleId = target.id,
-            allArticles = allArticlesList,
-            initialSelectedIds = target.linkedPostIds,
-            onDismiss = { viewModel.closeLinkPicker() },
-            onConfirmSelection = { newLinkedIds ->
-                viewModel.updateLinkedPosts(target.id, newLinkedIds)
-            }
-        )
-    }
-
-    // Article Reader / Detail Dialog
-    activeArticle?.let { article ->
+    readingArticle?.let { articleToRead ->
         ArticleReaderDialog(
-            article = article,
-            linkedArticles = activeArticleLinkedPosts,
-            backStackDepth = articleBackStack.size,
-            onDismiss = { viewModel.closeArticle() },
-            onNavigateBack = { viewModel.navigateBackInStack() },
-            onNavigateToLinkedArticle = { linked -> viewModel.navigateToLinkedArticle(linked) },
-            onOpenEditPost = { viewModel.openEditDialog(article) },
-            onToggleFavorite = { viewModel.toggleFavorite(article) },
-            onDelete = { viewModel.deleteLink(article) },
-            onUpdateNotes = { newNotes ->
-                viewModel.updateNotes(article.id, newNotes)
+            article = articleToRead,
+            linkedArticles = linkedArticles,
+            allAvailableTags = availableHashtags,
+            onDismiss = { viewModel.closeReader() },
+            onEdit = {
+                viewModel.closeReader()
+                viewModel.openEditDialog(articleToRead)
             },
-            onUpdateHashtags = { newHashtags ->
-                viewModel.updateHashtags(article.id, newHashtags)
+            onToggleFavorite = { viewModel.toggleFavorite(articleToRead) },
+            onDelete = {
+                viewModel.deleteLink(articleToRead)
             },
-            onAddComment = { commentText ->
-                viewModel.addCommentToActiveLink(commentText)
+            onUpdateHashtags = { newTags ->
+                viewModel.updateHashtags(articleToRead.id, newTags)
             },
-            onDeleteComment = { commentId ->
-                viewModel.deleteCommentFromActiveLink(commentId)
-            },
-            onUpdateComment = { commentId, newText ->
-                viewModel.updateCommentText(article.id, commentId, newText)
+            onLinkedArticleClick = { clicked ->
+                viewModel.openReader(clicked)
             },
             onHashtagClick = { tag ->
                 viewModel.setHashtag(tag)
-            }
-        )
-    }
-
-    // Cloud Auto Sync Management Dialog
-    if (isCloudSyncDialogOpen) {
-        CloudSyncDialog(
-            syncManager = viewModel.cloudSyncManager,
-            currentArticleCount = allArticlesList.size,
-            onDismiss = { viewModel.closeCloudSyncDialog() },
-            onCreateSnapshot = { note -> viewModel.createCloudSnapshot(note) },
-            onRestoreSnapshot = { snapshot -> viewModel.restoreCloudSnapshot(snapshot) },
-            onExportBackup = { viewModel.exportCloudBackup() },
-            onImportBackup = { json -> viewModel.importCloudBackup(json) },
-            onOpenGoogleDriveFolderSettings = {
-                viewModel.closeCloudSyncDialog()
-                viewModel.openGoogleDriveFolderSettings()
-            }
-        )
-    }
-
-    // Google Drive Specific Folder Selection & Settings Dialog
-    if (isGoogleDriveFolderSettingsOpen) {
-        GoogleDriveFolderSettingsDialog(
-            syncManager = viewModel.cloudSyncManager,
-            totalLocalArticles = allArticlesList.size,
-            onDismiss = { viewModel.closeGoogleDriveFolderSettings() },
-            onOpenFullCloudSync = {
-                viewModel.closeGoogleDriveFolderSettings()
-                viewModel.openCloudSyncDialog()
+                viewModel.closeReader()
             }
         )
     }

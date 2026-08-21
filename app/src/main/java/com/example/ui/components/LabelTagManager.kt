@@ -14,9 +14,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.ui.theme.AppIcons
 
 // Standard preset tags for quick 1-tap categorization
 val POPULAR_TAG_PRESETS = listOf(
@@ -88,7 +86,7 @@ fun LabelTagPicker(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Label,
+                    imageVector = AppIcons.Label,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp)
@@ -107,7 +105,7 @@ fun LabelTagPicker(
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
             ) {
                 Icon(
-                    imageVector = if (isInputExpanded) Icons.Default.Close else Icons.Default.Add,
+                    imageVector = if (isInputExpanded) AppIcons.Close else AppIcons.Add,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp)
                 )
@@ -199,7 +197,7 @@ fun LabelTagPicker(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Icon(
-                                imageVector = Icons.Default.Close,
+                                imageVector = AppIcons.Close,
                                 contentDescription = "Remove tag $tag",
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier
@@ -227,7 +225,6 @@ fun LabelTagPicker(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Popular preset suggestions
                 items(POPULAR_TAG_PRESETS) { (name, color) ->
                     val tagFormatted = "#$name"
                     val isAlreadySelected = selectedTags.any { it.equals(tagFormatted, ignoreCase = true) }
@@ -265,7 +262,6 @@ fun LabelTagPicker(
                     )
                 }
 
-                // Known custom tags from library
                 val unusedExisting = allAvailableTags.filterNot { avail ->
                     selectedTags.any { it.equals(avail, ignoreCase = true) } ||
                     POPULAR_TAG_PRESETS.any { "#${it.first}".equals(avail, ignoreCase = true) }
@@ -327,7 +323,7 @@ fun QuickTagAssignDialog(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Label,
+                                    imageVector = AppIcons.Label,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
@@ -349,7 +345,7 @@ fun QuickTagAssignDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(AppIcons.Close, contentDescription = "Close")
                     }
                 }
 
@@ -378,7 +374,7 @@ fun QuickTagAssignDialog(
                         },
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Save Tags")
                     }
