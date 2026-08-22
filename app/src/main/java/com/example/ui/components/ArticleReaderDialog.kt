@@ -2,6 +2,8 @@ package com.example.ui.components
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,17 +13,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.model.Article
 import com.example.ui.theme.AppIcons
-import java.text.SimpleDateFormat
-import java.util.*
+import com.example.util.TimeUtils
 
 @Composable
 fun ArticleReaderDialog(
@@ -34,10 +37,13 @@ fun ArticleReaderDialog(
     onDelete: () -> Unit,
     onUpdateHashtags: (List<String>) -> Unit,
     onLinkedArticleClick: (Article) -> Unit = {},
-    onHashtagClick: (String) -> Unit = {}
+    onHashtagClick: (String) -> Unit = {},
+    onAddAddendum: (articleId: Long, text: String) -> Unit = { _, _ -> },
+    onRemoveAddendum: (articleId: Long, addendumId: String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
-    val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault()) }
+    var newAddendumText by remember { mutableStateOf("") }
+    var isAddingAddendum by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -45,7 +51,7 @@ fun ArticleReaderDialog(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.92f)
+                .fillMaxHeight(0.94f)
                 .padding(vertical = 8.dp)
                 .testTag("article_reader_dialog")
         ) {
@@ -101,8 +107,17 @@ fun ArticleReaderDialog(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Optional Thumbnail Image
-                    if (article.thumbnailUrl.isNotBlank()) {
+                    // Video Player Component (YouTube or Local Video)
+                    if (article.videoUrl.isNotBlank()) {
+                        MastermindVideoPlayer(
+                            videoUrl = article.videoUrl,
+                            startSeconds = article.videoStartSeconds,
+                            endSeconds = article.videoEndSeconds,
+                            autostart = article.videoAutostart,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    } else if (article.thumbnailUrl.isNotBlank()) {
+                        // Optional Thumbnail Image if no video
                         AsyncImage(
                             model = article.thumbnailUrl,
                             contentDescription = "Thumbnail",
@@ -121,7 +136,7 @@ fun ArticleReaderDialog(
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    // Meta: Domain & Timestamp
+                    // Meta: Domain & 12-hour formatted post timestamp (e.g. 8:00 AM)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -132,16 +147,17 @@ fun ArticleReaderDialog(
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
-                                text = article.domain,
+                                text = article.domain.ifBlank { "local.note" },
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
 
+                        // 12-hour format: e.g. "Aug 20, 2026 · 8:00 AM"
                         Text(
-                            text = dateFormat.format(Date(article.updatedAt)),
-                            style = MaterialTheme.typography.labelSmall,
+                            text = TimeUtils.formatPostDateTime(article.updatedAt),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -177,6 +193,139 @@ fun ArticleReaderDialog(
                         linkedArticles = linkedArticles,
                         onLinkedArticleClick = onLinkedArticleClick
                     )
+
+                    // Addendums Section
+                    Divider(modifier = Modifier.padding(top = 10.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "📝 Addendums (${article.addendums.size})",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        if (!isAddingAddendum) {
+                            FilledTonalButton(
+                                onClick = { isAddingAddendum = true },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text("+ Add Addendum", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    // Render existing Addendums in chronological order
+                    if (article.addendums.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            article.addendums.forEachIndexed { index, addendum ->
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "Addendum #${index + 1} · ${TimeUtils.formatPostDateTime(addendum.timestamp)}",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            IconButton(
+                                                onClick = { onRemoveAddendum(article.id, addendum.id) },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    AppIcons.Close,
+                                                    contentDescription = "Remove Addendum",
+                                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                        RenderFormattedMarkdown(content = addendum.content)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Add Addendum Input Area
+                    if (isAddingAddendum) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Append New Addendum",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                OutlinedTextField(
+                                    value = newAddendumText,
+                                    onValueChange = { newAddendumText = it },
+                                    placeholder = { Text("Write update or continuation note (supports Markdown & links)...") },
+                                    minLines = 2,
+                                    maxLines = 6,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    TextButton(onClick = {
+                                        isAddingAddendum = false
+                                        newAddendumText = ""
+                                    }) {
+                                        Text("Cancel")
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Button(
+                                        onClick = {
+                                            if (newAddendumText.isNotBlank()) {
+                                                onAddAddendum(article.id, newAddendumText.trim())
+                                                newAddendumText = ""
+                                                isAddingAddendum = false
+                                            }
+                                        },
+                                        enabled = newAddendumText.isNotBlank(),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Save Addendum", fontSize = 12.5.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Footer Done Button
@@ -191,3 +340,4 @@ fun ArticleReaderDialog(
         }
     }
 }
+

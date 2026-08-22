@@ -200,11 +200,52 @@ class MastermindViewModel(application: Application) : AndroidViewModel(applicati
         summary: String,
         notes: String,
         hashtags: List<String>,
-        linkedIds: List<Long>
+        linkedIds: List<Long>,
+        videoUrl: String = "",
+        videoStartSeconds: Int = 0,
+        videoEndSeconds: Int = 0,
+        videoAutostart: Boolean = false,
+        addendums: List<com.example.data.model.Addendum> = emptyList()
     ) {
         viewModelScope.launch {
-            repository.insertArticle(url, title, thumbnailUrl, summary, notes, hashtags, linkedIds)
+            repository.insertArticle(
+                url = url,
+                title = title,
+                thumbnailUrl = thumbnailUrl,
+                summary = summary,
+                notes = notes,
+                hashtags = hashtags,
+                linkedIds = linkedIds,
+                videoUrl = videoUrl,
+                videoStartSeconds = videoStartSeconds,
+                videoEndSeconds = videoEndSeconds,
+                videoAutostart = videoAutostart,
+                addendums = addendums
+            )
             _snackbarMessage.value = "Note added successfully"
+        }
+    }
+
+    fun addAddendum(articleId: Long, content: String) {
+        if (content.isBlank()) return
+        viewModelScope.launch {
+            repository.addAddendum(articleId, content)
+            val updated = repository.getArticleById(articleId)
+            if (updated != null && _readingArticle.value?.id == articleId) {
+                _readingArticle.value = updated
+            }
+            _snackbarMessage.value = "Addendum added"
+        }
+    }
+
+    fun removeAddendum(articleId: Long, addendumId: String) {
+        viewModelScope.launch {
+            repository.removeAddendum(articleId, addendumId)
+            val updated = repository.getArticleById(articleId)
+            if (updated != null && _readingArticle.value?.id == articleId) {
+                _readingArticle.value = updated
+            }
+            _snackbarMessage.value = "Addendum removed"
         }
     }
 

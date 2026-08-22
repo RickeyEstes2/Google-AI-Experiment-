@@ -54,10 +54,10 @@ fun MastermindMainScreen(
     var articleForQuickTag by remember { mutableStateOf<Article?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Live Clock State (Format: Thursday, August 20, 2026 · 09:31:25 PM)
+    // Live Clock State (Format: Thursday, August 20, 2026 · 8:31:25 PM - 12 hour, no leading 0)
     var currentTimeFormatted by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
-        val clockFormat = SimpleDateFormat("EEEE, MMMM d, yyyy · hh:mm:ss a", Locale.getDefault())
+        val clockFormat = SimpleDateFormat("EEEE, MMMM d, yyyy · h:mm:ss a", Locale.getDefault())
         while (true) {
             currentTimeFormatted = clockFormat.format(Date())
             delay(1000)
@@ -86,10 +86,10 @@ fun MastermindMainScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // App Bar Title & Badges
+                    // App Bar Title
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.Start,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
@@ -128,32 +128,6 @@ fun MastermindMainScreen(
                                 )
                             }
                         }
-
-                        // Vertical Notes Pill Badge
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = CardSurfaceDark,
-                            border = BorderStroke(1.dp, BorderDark),
-                            modifier = Modifier.width(28.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "${allArticles.size}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = Color.White
-                                )
-                                Text("N", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
-                                Text("o", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
-                                Text("t", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
-                                Text("e", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
-                                Text("s", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted, lineHeight = 11.sp)
-                            }
-                        }
                     }
 
                     // Live Clock Bar
@@ -188,10 +162,9 @@ fun MastermindMainScreen(
                         onValueChange = { viewModel.setSearchQuery(it) },
                         placeholder = {
                             Text(
-                                "Search titles, notes, tags,\nmath formulas...",
+                                "Search titles, notes, tags, formulas...",
                                 fontSize = 13.5.sp,
-                                color = TextMuted,
-                                lineHeight = 18.sp
+                                color = TextMuted
                             )
                         },
                         leadingIcon = {
@@ -209,9 +182,8 @@ fun MastermindMainScreen(
                                 }
                             }
                         },
-                        singleLine = false,
-                        maxLines = 2,
-                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true,
+                        shape = RoundedCornerShape(20.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedContainerColor = CardSurfaceDark,
                             focusedContainerColor = CardSurfaceDark,
@@ -222,6 +194,7 @@ fun MastermindMainScreen(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(50.dp)
                             .testTag("main_search_bar")
                     )
                 }
@@ -480,8 +453,21 @@ fun MastermindMainScreen(
             initialHashtags = pendingInitialData?.hashtags ?: emptyList(),
             isFromShare = pendingInitialData != null,
             onDismiss = { viewModel.closeAddDialog() },
-            onSave = { url, title, thumb, sum, notes, tags, links ->
-                viewModel.addLink(url, title, thumb, sum, notes, tags, links)
+            onSave = { url, title, thumb, sum, notes, tags, links, videoUrl, videoStart, videoEnd, videoAutostart, addendums ->
+                viewModel.addLink(
+                    url = url,
+                    title = title,
+                    thumbnailUrl = thumb,
+                    summary = sum,
+                    notes = notes,
+                    hashtags = tags,
+                    linkedIds = links,
+                    videoUrl = videoUrl,
+                    videoStartSeconds = videoStart,
+                    videoEndSeconds = videoEnd,
+                    videoAutostart = videoAutostart,
+                    addendums = addendums
+                )
                 viewModel.closeAddDialog()
             }
         )

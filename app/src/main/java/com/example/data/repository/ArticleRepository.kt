@@ -21,7 +21,12 @@ class ArticleRepository(private val articleDao: ArticleDao) {
         summary: String,
         notes: String,
         hashtags: List<String>,
-        linkedIds: List<Long> = emptyList()
+        linkedIds: List<Long> = emptyList(),
+        videoUrl: String = "",
+        videoStartSeconds: Int = 0,
+        videoEndSeconds: Int = 0,
+        videoAutostart: Boolean = false,
+        addendums: List<com.example.data.model.Addendum> = emptyList()
     ): Long {
         val domain = extractDomain(url)
         
@@ -54,6 +59,11 @@ class ArticleRepository(private val articleDao: ArticleDao) {
             notes = notes.trim(),
             hashtags = hashtags.map { it.trim() }.filter { it.isNotBlank() },
             linkedArticleIds = linkedIds,
+            videoUrl = videoUrl.trim(),
+            videoStartSeconds = videoStartSeconds,
+            videoEndSeconds = videoEndSeconds,
+            videoAutostart = videoAutostart,
+            addendums = addendums,
             addedAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
@@ -94,6 +104,27 @@ class ArticleRepository(private val articleDao: ArticleDao) {
             updatedAt = System.currentTimeMillis()
         )
         articleDao.updateArticle(updated)
+    }
+
+    suspend fun addAddendum(articleId: Long, content: String): Boolean {
+        val existing = articleDao.getArticleById(articleId) ?: return false
+        val newAddendum = com.example.data.model.Addendum(content = content.trim())
+        val updated = existing.copy(
+            addendums = existing.addendums + newAddendum,
+            updatedAt = System.currentTimeMillis()
+        )
+        articleDao.updateArticle(updated)
+        return true
+    }
+
+    suspend fun removeAddendum(articleId: Long, addendumId: String): Boolean {
+        val existing = articleDao.getArticleById(articleId) ?: return false
+        val updated = existing.copy(
+            addendums = existing.addendums.filterNot { it.id == addendumId },
+            updatedAt = System.currentTimeMillis()
+        )
+        articleDao.updateArticle(updated)
+        return true
     }
 
     suspend fun deleteArticle(article: Article) {
