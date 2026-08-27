@@ -1,6 +1,6 @@
 {
-  "name": "Database Mastermind",
-  "description": "Offline-first knowledge base and personal database with custom labeling, rich markdown formatting, interactive charts, and math notation.",
+  "name": "CrossApp Memory",
+  "description": "Remembers text across apps on your phone and turns it into chronological searchable memories, answers, summaries, stats, personal insights, and exportable CSV.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

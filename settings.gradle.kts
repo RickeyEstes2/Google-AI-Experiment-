@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Database Mastermind"
+rootProject.name = "CrossApp Memory"
 include(":app")

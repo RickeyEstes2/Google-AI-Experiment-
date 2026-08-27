@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">Database Mastermind</string>
+    <string name="app_name">CrossApp Memory</string>
+    <string name="accessibility_service_label">CrossApp Memory Collector</string>
+    <string name="accessibility_service_description">Allows CrossApp Memory to remember text across apps on your phone and turn it into searchable memories, summaries, answers, and personal insights.</string>
 </resources>

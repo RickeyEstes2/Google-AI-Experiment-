@@ -6,14 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import com.example.ui.screens.MastermindMainScreen
+import com.example.ui.screens.MainMemoryScreen
 import com.example.ui.theme.DatabaseMastermindTheme
-import com.example.ui.viewmodel.MastermindViewModel
+import com.example.ui.viewmodel.MemoryViewModel
 import com.example.util.ShareIntentParser
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: MastermindViewModel by viewModels()
+    private val viewModel: MemoryViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DatabaseMastermindTheme {
-                MastermindMainScreen(viewModel = viewModel)
+                MainMemoryScreen(viewModel = viewModel)
             }
         }
     }
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
             viewModel.handleIncomingShare(
                 url = sharedData.url,
                 title = sharedData.title,
-                notes = sharedData.notes
+                text = sharedData.notes
             )
         }
     }
