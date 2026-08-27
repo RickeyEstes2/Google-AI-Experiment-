@@ -46,7 +46,7 @@
    - Automatic filtering of password, PIN, and sensitive input fields.
 
 8. **🚀 GitHub Actions CI/CD Pipeline**:
-   - Fully configured `.github/workflows/build.yml` and `.github/workflows/android.yml`.
+   - Fully configured `.github/workflows/build.yml` and `.github/workflows/android.yml` utilizing `actions/setup-java@v5` and `actions/setup-node` with Node.js 24 runtime environment.
    - Automatically builds, tests, and packages debug and release APK artifacts on GitHub.
 
 ---
