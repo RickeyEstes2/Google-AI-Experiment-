@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Flowchart"
+rootProject.name = "Code Generator"
 include(":app")

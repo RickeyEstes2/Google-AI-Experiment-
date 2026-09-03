@@ -1,6 +1,6 @@
 {
-  "name": "Flowchart",
-  "description": "Problem-solving flowchart creator, interactive diagnostic decision walker, PDF and HTML export, and GitHub Actions APK packaging.",
+  "name": "Code Generator",
+  "description": "Text-to-code multi-language generator and explainer with DBSCAN clustering, Reinforcement Learning policy, snippet & knowledge base, error mitigation fine-tuning, and GitHub Actions APK packaging.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
