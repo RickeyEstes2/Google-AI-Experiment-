@@ -169,26 +169,33 @@ fun ErrorMitigationDialog(
                         }
                     }
 
-                    // Code Editor Text Field
+                    // Code Editor with Live Syntax Highlighting
                     Column {
-                        Text(
-                            text = "Editable Code (Fix Mistakes Below):",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Editable Code (Fix Mistakes Below):",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Syntax Highlighting Active",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                         Spacer(modifier = Modifier.height(6.dp))
-                        OutlinedTextField(
+                        CodeSnippetEditor(
                             value = editedCode,
                             onValueChange = { editedCode = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(260.dp),
-                            textStyle = LocalTextStyle.current.copy(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
-                                lineHeight = 16.sp
-                            ),
-                            placeholder = { Text("Corrected code...") }
+                            languageId = record.languageId,
+                            placeholder = "// Edit and correct code here...",
+                            minHeight = 220.dp,
+                            maxHeight = 320.dp
                         )
                     }
 

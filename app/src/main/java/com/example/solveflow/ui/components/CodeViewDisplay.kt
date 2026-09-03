@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.solveflow.engine.syntax.SyntaxHighlighterEngine
 
 @Composable
 fun CodeViewDisplay(
@@ -33,7 +35,10 @@ fun CodeViewDisplay(
     onEditClicked: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val lines = code.lines()
+    val lines = remember(code) { code.lines() }
+    val highlightedCode = remember(code, languageName) {
+        SyntaxHighlighterEngine.highlight(code, languageName, isDark = true)
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -127,17 +132,14 @@ fun CodeViewDisplay(
                         }
                     }
 
-                    // Code text column
-                    Column {
-                        lines.forEach { line ->
-                            Text(
-                                text = if (line.isEmpty()) " " else line,
-                                color = Color(0xFFCDD6F4),
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
-                                lineHeight = 18.sp
-                            )
-                        }
+                    // Code text column with syntax highlighting
+                    Box {
+                        Text(
+                            text = highlightedCode,
+                            fontSize = 12.sp,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = 18.sp
+                        )
                     }
                 }
             }

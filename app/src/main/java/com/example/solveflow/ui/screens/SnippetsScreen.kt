@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.solveflow.data.model.CodeSnippet
+import com.example.solveflow.engine.syntax.SyntaxHighlighterEngine
+import com.example.solveflow.ui.components.EditSnippetDialog
 import com.example.solveflow.ui.viewmodel.CodeGenViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +36,7 @@ fun SnippetsScreen(
     val languages by viewModel.languages.collectAsState()
     var selectedLanguageFilter by remember { mutableStateOf<String?>("All") }
     var searchQuery by remember { mutableStateOf("") }
+    var editingSnippet by remember { mutableStateOf<CodeSnippet?>(null) }
 
     val filteredSnippets = remember(snippets, selectedLanguageFilter, searchQuery) {
         snippets.filter { snippet ->
@@ -143,6 +147,9 @@ fun SnippetsScreen(
                                 viewModel.setPromptText("Based on this pattern: ${snippet.title}")
                                 languages.find { it.id == snippet.languageId }?.let { viewModel.setSelectedLanguage(it) }
                                 viewModel.setActiveTab(com.example.solveflow.ui.viewmodel.CodeGenTab.GENERATE)
+                            },
+                            onEdit = {
+                                editingSnippet = snippet
                             }
                         )
                     }
@@ -150,13 +157,34 @@ fun SnippetsScreen(
             }
         }
     }
+
+    editingSnippet?.let { snippetToEdit ->
+        EditSnippetDialog(
+            snippet = snippetToEdit,
+            languages = languages,
+            onDismiss = { editingSnippet = null },
+            onSave = { updated ->
+                viewModel.updateSnippet(updated)
+                editingSnippet = null
+            },
+            onDelete = { toDelete ->
+                viewModel.deleteSnippet(toDelete)
+                editingSnippet = null
+            }
+        )
+    }
 }
 
 @Composable
 fun SnippetItemCard(
     snippet: CodeSnippet,
-    onUseInPrompt: () -> Unit
+    onUseInPrompt: () -> Unit,
+    onEdit: () -> Unit
 ) {
+    val previewCode = remember(snippet.code, snippet.languageId) {
+        val truncated = snippet.code.lines().take(6).joinToString("\n")
+        SyntaxHighlighterEngine.highlight(truncated, snippet.languageId, isDark = true)
+    }
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -209,15 +237,14 @@ fun SnippetItemCard(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Code Preview
+            // Code Preview with Syntax Highlighting
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(0xFF1E1E2E),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = snippet.code.lines().take(6).joinToString("\n"),
-                    color = Color(0xFFCDD6F4),
+                    text = previewCode,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
@@ -239,8 +266,21 @@ fun SnippetItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                TextButton(onClick = onUseInPrompt) {
-                    Text("Generate with this", fontSize = 11.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Snippet in Highlighter Editor",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    TextButton(onClick = onUseInPrompt) {
+                        Text("Generate with this", fontSize = 11.sp)
+                    }
                 }
             }
         }

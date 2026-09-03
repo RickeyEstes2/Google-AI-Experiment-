@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.solveflow.data.model.ProgrammingLanguage
+import com.example.solveflow.engine.syntax.SyntaxHighlighterEngine
 import com.example.solveflow.ui.viewmodel.CodeGenViewModel
 
 @Composable
@@ -170,15 +171,18 @@ fun LanguageCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Template preview
+            // Template preview with Syntax Highlighting
+            val highlightedBoilerplate = remember(language.sampleBoilerplate, language.id) {
+                val customKw = language.syntaxKeywords.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                SyntaxHighlighterEngine.highlight(language.sampleBoilerplate, language.id, isDark = true, customKeywords = customKw)
+            }
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(0xFF1E1E2E),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = language.sampleBoilerplate,
-                    color = Color(0xFFCDD6F4),
+                    text = highlightedBoilerplate,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp,
                     lineHeight = 15.sp,

@@ -40,6 +40,10 @@ class CodeGenRepository(
         return snippetDao.insertSnippet(snippet)
     }
 
+    suspend fun updateSnippet(snippet: CodeSnippet) {
+        snippetDao.updateSnippet(snippet)
+    }
+
     suspend fun deleteSnippet(snippet: CodeSnippet) {
         snippetDao.deleteSnippet(snippet)
     }

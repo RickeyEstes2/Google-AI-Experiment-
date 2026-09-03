@@ -264,6 +264,22 @@ class CodeGenViewModel(
         }
     }
 
+    fun updateSnippet(snippet: CodeSnippet) {
+        viewModelScope.launch {
+            repository.updateSnippet(snippet)
+            _statusMessage.value = "Snippet '${snippet.title}' updated!"
+            recalculateDBSCAN()
+        }
+    }
+
+    fun deleteSnippet(snippet: CodeSnippet) {
+        viewModelScope.launch {
+            repository.deleteSnippet(snippet)
+            _statusMessage.value = "Snippet deleted."
+            recalculateDBSCAN()
+        }
+    }
+
     fun openNewKnowledgeDialog() { _showNewKnowledgeDialog.value = true }
     fun closeNewKnowledgeDialog() { _showNewKnowledgeDialog.value = false }
 

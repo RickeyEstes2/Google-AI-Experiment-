@@ -116,19 +116,30 @@ fun NewLanguageDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    OutlinedTextField(
-                        value = boilerplate,
-                        onValueChange = { boilerplate = it },
-                        label = { Text("Standard Template / Boilerplate") },
-                        placeholder = { Text("// Entry point or imports template...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp),
-                        textStyle = LocalTextStyle.current.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
+                    val customKeywordSet = remember(keywords) {
+                        keywords.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+                    }
+
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Standard Template / Boilerplate", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Syntax Highlighting Active", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        CodeSnippetEditor(
+                            value = boilerplate,
+                            onValueChange = { boilerplate = it },
+                            languageId = name.ifBlank { "custom" },
+                            customKeywords = customKeywordSet,
+                            placeholder = "// Enter starter boilerplate...\n// Keywords entered above will highlight automatically!",
+                            minHeight = 140.dp,
+                            maxHeight = 220.dp
                         )
-                    )
+                    }
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 12.dp))

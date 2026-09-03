@@ -126,19 +126,25 @@ fun NewSnippetDialog(
                         }
                     }
 
-                    OutlinedTextField(
-                        value = code,
-                        onValueChange = { code = it; errorMessage = null },
-                        label = { Text("Code Snippet *") },
-                        placeholder = { Text("// Paste reusable implementation...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                        textStyle = LocalTextStyle.current.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Code Snippet *", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Syntax Highlighting Active", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        CodeSnippetEditor(
+                            value = code,
+                            onValueChange = { code = it; errorMessage = null },
+                            languageId = selectedLangId,
+                            placeholder = "// Paste or type $selectedLangId implementation...\n// Keywords, control flow, types, strings & comments are styled live.",
+                            minHeight = 180.dp,
+                            maxHeight = 240.dp
                         )
-                    )
+                    }
 
                     OutlinedTextField(
                         value = tags,
