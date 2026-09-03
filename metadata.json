@@ -1,6 +1,6 @@
 {
-  "name": "CrossApp Memory",
-  "description": "Remembers text across apps on your phone and turns it into chronological searchable memories, answers, summaries, stats, personal insights, and exportable CSV.",
+  "name": "SolveFlow",
+  "description": "Problem-solving flowchart creator, interactive diagnostic decision walker, PDF and HTML export, and GitHub Actions APK packaging.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

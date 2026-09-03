@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CrossApp Memory"
+rootProject.name = "SolveFlow"
 include(":app")

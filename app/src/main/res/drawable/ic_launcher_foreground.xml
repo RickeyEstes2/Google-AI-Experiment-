@@ -4,17 +4,22 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Outer Storage Stack / Database Layers -->
+    <!-- Top node -->
     <path
         android:fillColor="#38BDF8"
-        android:pathData="M34,36 C34,31.5 42.9,28 54,28 C65.1,28 74,31.5 74,36 C74,40.5 65.1,44 54,44 C42.9,44 34,40.5 34,36 Z" />
+        android:pathData="M38,28 h32 a4,4 0 0,1 4,4 v12 a4,4 0 0,1 -4,4 h-32 a4,4 0 0,1 -4,-4 v-12 a4,4 0 0,1 4,-4 z" />
+    <!-- Connector line -->
     <path
-        android:fillColor="#0284C7"
-        android:pathData="M34,48 C34,43.5 42.9,40 54,40 C65.1,40 74,43.5 74,48 C74,52.5 65.1,56 54,56 C42.9,56 34,52.5 34,48 Z" />
+        android:strokeColor="#94A3B8"
+        android:strokeWidth="3"
+        android:pathData="M54,48 v14" />
+    <!-- Diamond decision node -->
     <path
-        android:fillColor="#0369A1"
-        android:pathData="M34,60 C34,55.5 42.9,52 54,52 C65.1,52 74,55.5 74,60 C74,64.5 65.1,68 54,68 C42.9,68 34,64.5 34,60 Z" />
+        android:fillColor="#F59E0B"
+        android:pathData="M54,62 L70,72 L54,82 L38,72 Z" />
+    <!-- Branch arrows -->
     <path
-        android:fillColor="#38BDF8"
-        android:pathData="M34,72 C34,67.5 42.9,64 54,64 C65.1,64 74,67.5 74,72 C74,76.5 65.1,80 54,80 C42.9,80 34,76.5 34,72 Z" />
+        android:strokeColor="#34D399"
+        android:strokeWidth="3"
+        android:pathData="M54,82 v8 M70,72 h8" />
 </vector>
