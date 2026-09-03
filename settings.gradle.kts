@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SolveFlow"
+rootProject.name = "Flowchart"
 include(":app")

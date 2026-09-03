@@ -111,7 +111,7 @@ fun MainScreen(viewModel: FlowchartViewModel) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "SolveFlow",
+                                text = "Flowchart",
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 20.sp,
                                 color = MaterialTheme.colorScheme.onSurface

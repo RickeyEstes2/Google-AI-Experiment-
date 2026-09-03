@@ -62,7 +62,7 @@ fun GitHubActionsDialog(
     val gitCommands = """
 git init
 git add .
-git commit -m "SolveFlow: Problem Solving Flowchart & CI/CD APK packaging"
+git commit -m "Flowchart: Problem Solving Flowchart & CI/CD APK packaging"
 git branch -M main
 git remote add origin https://github.com/<your-username>/<your-repo>.git
 git push -u origin main
@@ -110,7 +110,7 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: solveflow-debug-apk
+          name: flowchart-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
     """.trimIndent()

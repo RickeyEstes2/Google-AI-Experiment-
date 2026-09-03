@@ -1,5 +1,5 @@
 {
-  "name": "SolveFlow",
+  "name": "Flowchart",
   "description": "Problem-solving flowchart creator, interactive diagnostic decision walker, PDF and HTML export, and GitHub Actions APK packaging.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
