@@ -68,9 +68,9 @@ fun CodeSnippetEditor(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
         border = CardDefaults.outlinedCardBorder().copy(
-            brush = SolidColor(Color(0xFF313244))
+            brush = SolidColor(Color(0xFF27272A))
         )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -78,7 +78,7 @@ fun CodeSnippetEditor(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF252538))
+                    .background(Color(0xFF27272A))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -94,7 +94,7 @@ fun CodeSnippetEditor(
 
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Color(0xFF313244)
+                        color = Color(0xFF3F3F46)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -103,13 +103,13 @@ fun CodeSnippetEditor(
                             Icon(
                                 imageVector = Icons.Default.Code,
                                 contentDescription = null,
-                                tint = Color(0xFF89B4FA),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = languageId.uppercase(),
-                                color = Color(0xFFCDD6F4),
+                                color = Color(0xFFFAFAFA),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace
@@ -256,7 +256,7 @@ fun CodeSnippetEditor(
                             fontFamily = FontFamily.Monospace,
                             lineHeight = 18.sp
                         ),
-                        cursorBrush = SolidColor(Color(0xFF89B4FA)),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         visualTransformation = visualTransformation
                     )
                 }

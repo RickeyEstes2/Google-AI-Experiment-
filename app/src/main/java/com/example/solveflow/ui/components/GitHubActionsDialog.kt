@@ -49,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.solveflow.ui.theme.Emerald400
 import com.example.solveflow.ui.theme.Emerald500
-import com.example.solveflow.ui.theme.Sky400
 
 @Composable
 fun GitHubActionsDialog(
@@ -149,7 +149,7 @@ jobs:
                             text = "CI / CD & PACKAGING CAPABILITY",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Sky400,
+                            color = Emerald400,
                             letterSpacing = 1.sp
                         )
                         Text(
@@ -211,7 +211,7 @@ jobs:
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Sky400, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.CloudUpload, contentDescription = null, tint = Emerald400, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "1. Push Repository to GitHub",
@@ -236,14 +236,14 @@ jobs:
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF0F172A))
+                                    .background(Color(0xFF18181B))
                                     .padding(12.dp)
                             ) {
                                 Text(
                                     text = gitCommands,
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 11.sp,
-                                    color = Color(0xFF38BDF8),
+                                    color = Emerald400,
                                     lineHeight = 16.sp
                                 )
                             }
@@ -261,7 +261,7 @@ jobs:
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Download, contentDescription = null, tint = Sky400, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Download, contentDescription = null, tint = Emerald400, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "2. Workflow: .github/workflows/build_apk.yml",
@@ -286,14 +286,14 @@ jobs:
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF0F172A))
+                                    .background(Color(0xFF18181B))
                                     .padding(12.dp)
                             ) {
                                 Text(
                                     text = workflowYaml,
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 10.sp,
-                                    color = Color(0xFF94A3B8),
+                                    color = Color(0xFFA1A1AA),
                                     lineHeight = 15.sp
                                 )
                             }
@@ -303,8 +303,8 @@ jobs:
                     // How to download APK
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Sky400.copy(alpha = 0.1f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Sky400.copy(alpha = 0.3f)),
+                        color = Emerald400.copy(alpha = 0.1f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Emerald400.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
@@ -312,7 +312,7 @@ jobs:
                                 text = "💡 How to Download the Built APK:",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
-                                color = Sky400
+                                color = Emerald400
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -330,9 +330,12 @@ jobs:
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Sky400)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Emerald500,
+                        contentColor = Color(0xFF022C22)
+                    )
                 ) {
-                    Text("Done", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                    Text("Done", color = Color(0xFF022C22), fontWeight = FontWeight.Bold)
                 }
             }
         }

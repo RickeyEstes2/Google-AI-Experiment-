@@ -75,9 +75,9 @@ import com.example.solveflow.ui.components.DiagnosticRunnerDialog
 import com.example.solveflow.ui.components.EditFlowchartDialog
 import com.example.solveflow.ui.components.GitHubActionsDialog
 import com.example.solveflow.ui.theme.Amber500
+import com.example.solveflow.ui.theme.Emerald400
 import com.example.solveflow.ui.theme.Emerald500
-import com.example.solveflow.ui.theme.Indigo400
-import com.example.solveflow.ui.theme.Sky400
+import com.example.solveflow.ui.theme.Violet400
 import com.example.solveflow.ui.viewmodel.FlowchartViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,11 +119,11 @@ fun MainScreen(viewModel: FlowchartViewModel) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = Sky400.copy(alpha = 0.2f)
+                                color = Emerald400.copy(alpha = 0.2f)
                             ) {
                                 Text(
                                     text = "CI & PDF/HTML READY",
-                                    color = Sky400,
+                                    color = Emerald400,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -185,8 +185,8 @@ fun MainScreen(viewModel: FlowchartViewModel) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateDialog = true },
-                containerColor = Sky400,
-                contentColor = Color(0xFF0F172A),
+                containerColor = Emerald500,
+                contentColor = Color(0xFF022C22),
                 modifier = Modifier.testTag("create_flowchart_fab")
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Create Flowchart")
@@ -224,12 +224,12 @@ fun MainScreen(viewModel: FlowchartViewModel) {
                     val isSelected = selectedCategory == category
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = if (isSelected) Sky400 else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (isSelected) Emerald400 else MaterialTheme.colorScheme.surfaceVariant,
                         modifier = Modifier
                             .clickable { viewModel.setCategory(category) }
                             .border(
                                 width = 1.dp,
-                                color = if (isSelected) Sky400 else MaterialTheme.colorScheme.outlineVariant,
+                                color = if (isSelected) Emerald400 else MaterialTheme.colorScheme.outlineVariant,
                                 shape = RoundedCornerShape(20.dp)
                             )
                     ) {
@@ -237,7 +237,7 @@ fun MainScreen(viewModel: FlowchartViewModel) {
                             text = category,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color(0xFF0F172A) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (isSelected) Color(0xFF022C22) else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
@@ -339,7 +339,7 @@ fun MainScreen(viewModel: FlowchartViewModel) {
                                 text = inspectedFlowchart!!.category.uppercase(),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Sky400
+                                color = Emerald400
                             )
                             Text(
                                 text = inspectedFlowchart!!.title,
@@ -367,11 +367,14 @@ fun MainScreen(viewModel: FlowchartViewModel) {
                             inspectedFlowchart = null
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Sky400)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Emerald500,
+                            contentColor = Color(0xFF022C22)
+                        )
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color(0xFF0F172A))
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color(0xFF022C22))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Start Interactive Solver", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                        Text("Start Interactive Solver", color = Color(0xFF022C22), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -442,11 +445,11 @@ fun FlowchartCard(
             ) {
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = Sky400.copy(alpha = 0.15f)
+                    color = Emerald400.copy(alpha = 0.15f)
                 ) {
                     Text(
                         text = flowchart.category,
-                        color = Sky400,
+                        color = Emerald400,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -506,8 +509,8 @@ fun FlowchartCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                StatPill("Nodes", "${flowchart.nodes.size}", Color(0xFF64748B))
-                StatPill("Decisions", "$decisions", Indigo400)
+                StatPill("Nodes", "${flowchart.nodes.size}", Color(0xFFA1A1AA))
+                StatPill("Decisions", "$decisions", Violet400)
                 StatPill("Actions", "$actions", Amber500)
                 StatPill("Resolved", "$solutions", Emerald500)
             }
@@ -522,18 +525,21 @@ fun FlowchartCard(
                 Button(
                     onClick = onSolveClick,
                     modifier = Modifier.weight(1.3f).testTag("solve_button_${flowchart.id}"),
-                    colors = ButtonDefaults.buttonColors(containerColor = Sky400)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Emerald500,
+                        contentColor = Color(0xFF022C22)
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        tint = Color(0xFF0F172A),
+                        tint = Color(0xFF022C22),
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Solve / Run",
-                        color = Color(0xFF0F172A),
+                        color = Color(0xFF022C22),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
@@ -554,7 +560,7 @@ fun FlowchartCard(
                     modifier = Modifier.weight(1f).testTag("export_html_button_${flowchart.id}"),
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
-                    Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(14.dp), tint = Sky400)
+                    Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald400)
                     Spacer(modifier = Modifier.width(2.dp))
                     Text("HTML", fontSize = 11.sp)
                 }

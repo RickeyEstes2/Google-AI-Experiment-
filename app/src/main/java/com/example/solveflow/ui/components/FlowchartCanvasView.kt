@@ -46,10 +46,10 @@ import com.example.solveflow.data.model.FlowNode
 import com.example.solveflow.data.model.FlowchartData
 import com.example.solveflow.data.model.NodeType
 import com.example.solveflow.ui.theme.Amber500
+import com.example.solveflow.ui.theme.Emerald400
 import com.example.solveflow.ui.theme.Emerald500
-import com.example.solveflow.ui.theme.Indigo400
 import com.example.solveflow.ui.theme.Rose500
-import com.example.solveflow.ui.theme.Sky400
+import com.example.solveflow.ui.theme.Violet400
 
 @Composable
 fun FlowchartListView(
@@ -89,7 +89,7 @@ fun FlowNodeCard(
             .clickable(onClick = onClick)
             .border(
                 width = if (isActive) 2.5.dp else 1.dp,
-                color = if (isActive) Sky400 else MaterialTheme.colorScheme.outlineVariant,
+                color = if (isActive) Emerald400 else MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(16.dp)
             ),
         shape = RoundedCornerShape(16.dp),
@@ -198,11 +198,11 @@ fun BranchRow(branch: FlowBranch, flowchart: FlowchartData) {
     ) {
         Surface(
             shape = RoundedCornerShape(4.dp),
-            color = Sky400.copy(alpha = 0.2f)
+            color = Emerald400.copy(alpha = 0.2f)
         ) {
             Text(
                 text = branch.label,
-                color = Sky400,
+                color = Emerald400,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -230,8 +230,8 @@ fun BranchRow(branch: FlowBranch, flowchart: FlowchartData) {
 
 fun getNodePresentation(type: NodeType): Triple<Color, ImageVector, String> {
     return when (type) {
-        NodeType.START -> Triple(Sky400, Icons.Default.PlayArrow, "Problem Statement")
-        NodeType.DECISION -> Triple(Indigo400, Icons.Default.HelpOutline, "Decision / Check")
+        NodeType.START -> Triple(Emerald400, Icons.Default.PlayArrow, "Problem Statement")
+        NodeType.DECISION -> Triple(Violet400, Icons.Default.HelpOutline, "Decision / Check")
         NodeType.ACTION -> Triple(Amber500, Icons.Default.Warning, "Diagnostic Action")
         NodeType.OUTCOME_SUCCESS -> Triple(Emerald500, Icons.Default.CheckCircle, "Problem Resolved")
         NodeType.OUTCOME_ESCALATE -> Triple(Rose500, Icons.Default.Warning, "Escalate / Failover")

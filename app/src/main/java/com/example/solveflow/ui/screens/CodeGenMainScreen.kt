@@ -1,6 +1,7 @@
 package com.example.solveflow.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -48,28 +49,45 @@ fun CodeGenMainScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Terminal,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Terminal,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
                                 text = "Code Generator",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 19.sp
+                                fontSize = 18.sp,
+                                maxLines = 1
                             )
                             Text(
-                                text = "DBSCAN • Reinforcement Learning • CI/CD APK",
+                                text = "DBSCAN & RL • CI/CD APK Builder",
                                 fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
                             )
                         }
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.setActiveTab(CodeGenTab.GITHUB_APK) }) {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = "Build APK",
+                            tint = if (activeTab == CodeGenTab.GITHUB_APK) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     IconButton(onClick = { showGeminiKeyDialog = true }) {
                         Icon(Icons.Default.Key, contentDescription = "Gemini API Key")
                     }
@@ -80,42 +98,51 @@ fun CodeGenMainScreen(
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp
+            ) {
                 NavigationBarItem(
                     selected = activeTab == CodeGenTab.GENERATE,
                     onClick = { viewModel.setActiveTab(CodeGenTab.GENERATE) },
-                    icon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) },
-                    label = { Text("Generate", fontSize = 10.sp) }
+                    icon = { Icon(Icons.Default.AutoAwesome, contentDescription = "Generate") },
+                    label = { Text("Generate", fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = activeTab == CodeGenTab.SNIPPETS,
                     onClick = { viewModel.setActiveTab(CodeGenTab.SNIPPETS) },
-                    icon = { Icon(Icons.Default.DataObject, contentDescription = null) },
-                    label = { Text("Snippets", fontSize = 10.sp) }
+                    icon = { Icon(Icons.Default.DataObject, contentDescription = "Snippets") },
+                    label = { Text("Snippets", fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = activeTab == CodeGenTab.KNOWLEDGE,
                     onClick = { viewModel.setActiveTab(CodeGenTab.KNOWLEDGE) },
-                    icon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
-                    label = { Text("Knowledge", fontSize = 10.sp) }
+                    icon = { Icon(Icons.Default.MenuBook, contentDescription = "Knowledge") },
+                    label = { Text("Knowledge", fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = activeTab == CodeGenTab.LANGUAGES,
                     onClick = { viewModel.setActiveTab(CodeGenTab.LANGUAGES) },
-                    icon = { Icon(Icons.Default.Code, contentDescription = null) },
-                    label = { Text("Languages", fontSize = 10.sp) }
+                    icon = { Icon(Icons.Default.Code, contentDescription = "Languages") },
+                    label = { Text("Languages", fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = activeTab == CodeGenTab.DBSCAN_RL,
                     onClick = { viewModel.setActiveTab(CodeGenTab.DBSCAN_RL) },
-                    icon = { Icon(Icons.Default.Hub, contentDescription = null) },
-                    label = { Text("DBSCAN/RL", fontSize = 10.sp) }
+                    icon = { Icon(Icons.Default.Hub, contentDescription = "DBSCAN") },
+                    label = { Text("DBSCAN", fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                    alwaysShowLabel = false
                 )
                 NavigationBarItem(
                     selected = activeTab == CodeGenTab.GITHUB_APK,
                     onClick = { viewModel.setActiveTab(CodeGenTab.GITHUB_APK) },
-                    icon = { Icon(Icons.Default.Build, contentDescription = null) },
-                    label = { Text("Build APK", fontSize = 10.sp) }
+                    icon = { Icon(Icons.Default.Build, contentDescription = "Build APK") },
+                    label = { Text("Build APK", fontSize = 10.sp, maxLines = 1, softWrap = false) },
+                    alwaysShowLabel = false
                 )
             }
         }
@@ -214,7 +241,7 @@ fun CodeGenMainScreen(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "When left blank, CodeCraft runs entirely offline using its built-in algorithmic multi-language engine.",
+                        text = "When left blank, Code Generator runs entirely offline using its built-in algorithmic multi-language engine.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )

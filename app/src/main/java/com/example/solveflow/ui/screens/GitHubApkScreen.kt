@@ -110,7 +110,7 @@ fun GitHubApkScreen(
 
         // Terminal CLI Push Commands
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
@@ -120,11 +120,11 @@ fun GitHubApkScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Terminal, contentDescription = null, tint = Color(0xFF89B4FA), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "2. Terminal Push Commands",
-                            color = Color(0xFFCDD6F4),
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
@@ -136,12 +136,15 @@ fun GitHubApkScreen(
                             clipboard.setPrimaryClip(ClipData.newPlainText("Git Push Commands", gitCommands))
                             Toast.makeText(context, "Copied all push commands!", Toast.LENGTH_SHORT).show()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF89B4FA)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color(0xFF1E1E2E), modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Copy Commands", color = Color(0xFF1E1E2E), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Copy Commands", color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -149,7 +152,7 @@ fun GitHubApkScreen(
 
                 Text(
                     text = gitCommands,
-                    color = Color(0xFFA6ADC8),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
                     lineHeight = 18.sp
@@ -193,7 +196,7 @@ fun GitHubApkScreen(
             }
 
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -208,15 +211,15 @@ fun GitHubApkScreen(
                                 Toast.makeText(context, "Copied file content!", Toast.LENGTH_SHORT).show()
                             }
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color(0xFF89B4FA), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy File", color = Color(0xFF89B4FA), fontSize = 11.sp)
+                            Text("Copy File", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
                         }
                     }
 
                     Text(
                         text = currentFileContent,
-                        color = Color(0xFFCDD6F4),
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
                         lineHeight = 15.sp,

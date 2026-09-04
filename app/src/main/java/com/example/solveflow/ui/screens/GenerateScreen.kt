@@ -338,7 +338,7 @@ fun GenerateScreen(
                                 // Edit & Fine-Tune
                                 Button(
                                     onClick = { viewModel.openFineTuningDialog() },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {
                                     Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))

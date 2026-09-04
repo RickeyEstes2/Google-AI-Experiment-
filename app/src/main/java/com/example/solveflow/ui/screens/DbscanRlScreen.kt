@@ -123,7 +123,7 @@ fun DbscanRlScreen(
                     MetricBadge(
                         title = "Clusters Formed",
                         value = "${result.clusters.size}",
-                        color = Color(0xFF0284C7),
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
                     MetricBadge(

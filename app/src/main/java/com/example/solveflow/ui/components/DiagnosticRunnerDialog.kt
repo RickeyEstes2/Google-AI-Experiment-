@@ -59,9 +59,9 @@ import com.example.solveflow.data.model.FlowBranch
 import com.example.solveflow.data.model.FlowNode
 import com.example.solveflow.data.model.FlowchartData
 import com.example.solveflow.data.model.NodeType
+import com.example.solveflow.ui.theme.Emerald400
 import com.example.solveflow.ui.theme.Emerald500
 import com.example.solveflow.ui.theme.Rose500
-import com.example.solveflow.ui.theme.Sky400
 import java.util.UUID
 
 @Composable
@@ -126,7 +126,7 @@ fun DiagnosticRunnerDialog(
                             text = "DIAGNOSTIC SOLVER MODE",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Sky400,
+                            color = Emerald400,
                             letterSpacing = 1.sp
                         )
                         Text(
@@ -289,11 +289,14 @@ fun DiagnosticRunnerDialog(
                                             onExportHtml(session)
                                         },
                                         modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Sky400)
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Emerald500,
+                                            contentColor = Color(0xFF022C22)
+                                        )
                                     ) {
                                         Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Export HTML", color = Color(0xFF0F172A), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text("Export HTML", color = Color(0xFF022C22), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Button(
@@ -302,11 +305,14 @@ fun DiagnosticRunnerDialog(
                                             onExportPdf(session)
                                         },
                                         modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Emerald500)
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Emerald500,
+                                            contentColor = Color(0xFF022C22)
+                                        )
                                     ) {
                                         Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Export PDF", color = Color(0xFF0F172A), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text("Export PDF", color = Color(0xFF022C22), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -347,7 +353,7 @@ fun DiagnosticRunnerDialog(
                                         Icon(
                                             imageVector = Icons.Default.ArrowForward,
                                             contentDescription = null,
-                                            tint = Sky400,
+                                            tint = Emerald400,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -382,7 +388,7 @@ fun DiagnosticRunnerDialog(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = Sky400.copy(alpha = 0.2f),
+                                    color = Emerald400.copy(alpha = 0.2f),
                                     modifier = Modifier.size(20.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
@@ -390,7 +396,7 @@ fun DiagnosticRunnerDialog(
                                             text = "${idx + 1}",
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Sky400
+                                            color = Emerald400
                                         )
                                     }
                                 }
@@ -406,7 +412,7 @@ fun DiagnosticRunnerDialog(
                                         Text(
                                             text = "Selected: ${step.chosenBranchLabel}",
                                             fontSize = 11.sp,
-                                            color = Sky400
+                                            color = Emerald400
                                         )
                                     }
                                 }

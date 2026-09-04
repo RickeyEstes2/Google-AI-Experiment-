@@ -25,8 +25,8 @@ object SyntaxHighlighterEngine {
     val DarkStringColor = Color(0xFF98C379)        // Muted emerald green for strings
     val DarkNumberColor = Color(0xFFD19A66)        // Warm peach / orange for numbers
     val DarkCommentColor = Color(0xFF7F849C)       // Slate gray, italic for comments
-    val DarkAnnotationColor = Color(0xFF61AFEF)    // Cerulean cyan for @annotations & decorators
-    val DarkFunctionColor = Color(0xFF89DCEB)      // Sky blue for function declarations & calls
+    val DarkAnnotationColor = Color(0xFFF472B6)    // Rose pink for @annotations & decorators
+    val DarkFunctionColor = Color(0xFF2DD4BF)      // Teal/mint for function declarations & calls
     val DarkOperatorColor = Color(0xFFF38BA8)      // Pinkish coral for symbols & operators
     val DarkBooleanNullColor = Color(0xFFFAB387)   // Apricot for true, false, null, nil
     val DarkDefaultTextColor = Color(0xFFCDD6F4)   // Clean off-white for identifiers / text
@@ -38,8 +38,8 @@ object SyntaxHighlighterEngine {
     val LightStringColor = Color(0xFF50A14F)
     val LightNumberColor = Color(0xFF986801)
     val LightCommentColor = Color(0xFFA0A1A7)
-    val LightAnnotationColor = Color(0xFF4078F2)
-    val LightFunctionColor = Color(0xFF0184BC)
+    val LightAnnotationColor = Color(0xFFDB2777)   // Rose for @annotations
+    val LightFunctionColor = Color(0xFF0D9488)     // Teal for functions
     val LightOperatorColor = Color(0xFFCA1243)
     val LightBooleanNullColor = Color(0xFFD19A66)
     val LightDefaultTextColor = Color(0xFF24292F)

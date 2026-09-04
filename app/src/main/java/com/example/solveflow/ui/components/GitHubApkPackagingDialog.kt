@@ -122,7 +122,7 @@ fun GitHubApkPackagingDialog(
 
                     // Step 1: Git Commands
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
@@ -132,11 +132,11 @@ fun GitHubApkPackagingDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Terminal, contentDescription = null, tint = Color(0xFF89B4FA), modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "Terminal Push Commands",
-                                        color = Color(0xFFCDD6F4),
+                                        color = Color(0xFFFAFAFA),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -148,15 +148,15 @@ fun GitHubApkPackagingDialog(
                                         Toast.makeText(context, "Git commands copied!", Toast.LENGTH_SHORT).show()
                                     }
                                 ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color(0xFF89B4FA), modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Copy Commands", color = Color(0xFF89B4FA), fontSize = 11.sp)
+                                    Text("Copy Commands", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = gitCommands,
-                                color = Color(0xFFA6ADC8),
+                                color = Color(0xFFA1A1AA),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 11.sp,
                                 lineHeight = 16.sp
@@ -166,7 +166,7 @@ fun GitHubApkPackagingDialog(
 
                     // Step 2: GitHub Actions Workflow YAML preview
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
@@ -177,7 +177,7 @@ fun GitHubApkPackagingDialog(
                             ) {
                                 Text(
                                     text = ".github/workflows/build_apk.yml",
-                                    color = Color(0xFFBAC2DE),
+                                    color = Color(0xFFE4E4E7),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace
@@ -189,15 +189,15 @@ fun GitHubApkPackagingDialog(
                                         Toast.makeText(context, "Workflow YAML copied!", Toast.LENGTH_SHORT).show()
                                     }
                                 ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Color(0xFF89B4FA), modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Copy YAML", color = Color(0xFF89B4FA), fontSize = 11.sp)
+                                    Text("Copy YAML", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = workflowYaml,
-                                color = Color(0xFFA6ADC8),
+                                color = Color(0xFFA1A1AA),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 11.sp,
                                 lineHeight = 15.sp,

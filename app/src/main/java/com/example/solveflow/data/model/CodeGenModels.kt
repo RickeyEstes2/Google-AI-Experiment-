@@ -65,7 +65,7 @@ enum class RlStrategy(
     CONCISE(
         title = "Concise & Idiomatic",
         description = "Minimal boilerplate, clean high-level syntax, direct functional expressions",
-        badgeColorHex = 0xFF0284C7
+        badgeColorHex = 0xFF10B981
     ),
     ROBUST_DEFENSIVE(
         title = "Robust & Defensive",

@@ -27,20 +27,9 @@ fun LanguagesScreen(
 ) {
     val languages by viewModel.languages.collectAsState()
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.openNewLanguageDialog() },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Language")
-            }
-        },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
+    Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -51,11 +40,12 @@ fun LanguagesScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Supported Programming Languages",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = "Supported Languages",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "${languages.size} language(s) configured for multi-language code generation",
@@ -66,11 +56,16 @@ fun LanguagesScreen(
 
                 Button(
                     onClick = { viewModel.openNewLanguageDialog() },
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Language", fontSize = 12.sp)
+                    Text("Add Language", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -178,7 +173,7 @@ fun LanguageCard(
             }
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF1E1E2E),
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(

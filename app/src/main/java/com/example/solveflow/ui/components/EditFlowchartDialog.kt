@@ -52,7 +52,8 @@ import com.example.solveflow.data.model.FlowBranch
 import com.example.solveflow.data.model.FlowNode
 import com.example.solveflow.data.model.FlowchartData
 import com.example.solveflow.data.model.NodeType
-import com.example.solveflow.ui.theme.Sky400
+import com.example.solveflow.ui.theme.Emerald400
+import com.example.solveflow.ui.theme.Emerald500
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -159,7 +160,7 @@ fun EditFlowchartDialog(
                             text = if (initialFlowchart == null) "NEW FLOWCHART" else "EDIT FLOWCHART",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Sky400,
+                            color = Emerald400,
                             letterSpacing = 1.sp
                         )
                         Text(
@@ -295,9 +296,12 @@ fun EditFlowchartDialog(
                         },
                         enabled = title.isNotBlank() && nodes.isNotEmpty(),
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Sky400)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Emerald500,
+                            contentColor = Color(0xFF022C22)
+                        )
                     ) {
-                        Text("Save Flowchart", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                        Text("Save Flowchart", color = Color(0xFF022C22), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -329,7 +333,7 @@ fun EditNodeCard(
                     text = "Step $stepIndex",
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = Sky400
+                    color = Emerald400
                 )
                 Spacer(modifier = Modifier.width(8.dp))
 

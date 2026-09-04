@@ -44,7 +44,7 @@ fun CodeViewDisplay(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E1E2E) // Modern terminal dark canvas
+            containerColor = Color(0xFF18181B) // Pure neutral Zinc dark canvas
         )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -52,7 +52,7 @@ fun CodeViewDisplay(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF28283D))
+                    .background(Color(0xFF27272A))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -68,7 +68,7 @@ fun CodeViewDisplay(
 
                     Text(
                         text = languageName,
-                        color = Color(0xFFBAC2DE),
+                        color = Color(0xFFE4E4E7),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = FontFamily.Monospace
@@ -84,7 +84,7 @@ fun CodeViewDisplay(
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit and Fine Tune",
-                                tint = Color(0xFF89B4FA),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
