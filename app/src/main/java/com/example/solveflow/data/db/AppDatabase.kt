@@ -18,9 +18,14 @@ import kotlinx.coroutines.launch
         CodeSnippet::class,
         KnowledgeItem::class,
         GenerationRecord::class,
-        RlPolicyEntry::class
+        RlPolicyEntry::class,
+        ChatSessionEntity::class,
+        ChatMessageEntity::class,
+        SavedLogEntity::class,
+        SavedPdfEntity::class,
+        SavedMathEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,6 +36,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun knowledgeDao(): KnowledgeDao
     abstract fun generationRecordDao(): GenerationRecordDao
     abstract fun rlPolicyDao(): RlPolicyDao
+    abstract fun chatDao(): ChatDao
+    abstract fun logDao(): LogDao
+    abstract fun pdfDao(): PdfDao
+    abstract fun mathDao(): MathDao
 
     companion object {
         @Volatile

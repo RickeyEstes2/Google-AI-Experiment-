@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Code Generator"
+rootProject.name = "GPT-Bot"
 include(":app")

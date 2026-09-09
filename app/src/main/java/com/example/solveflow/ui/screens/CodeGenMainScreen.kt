@@ -18,7 +18,8 @@ import com.example.solveflow.ui.viewmodel.CodeGenViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CodeGenMainScreen(
-    viewModel: CodeGenViewModel
+    viewModel: CodeGenViewModel,
+    onNavigateToChat: () -> Unit = {}
 ) {
     val activeTab by viewModel.activeTab.collectAsState()
     val statusMessage by viewModel.statusMessage.collectAsState()
@@ -81,6 +82,13 @@ fun CodeGenMainScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToChat) {
+                        Icon(
+                            imageVector = Icons.Default.Psychology,
+                            contentDescription = "Open CoT Chat",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     IconButton(onClick = { viewModel.setActiveTab(CodeGenTab.GITHUB_APK) }) {
                         Icon(
                             imageVector = Icons.Default.Build,

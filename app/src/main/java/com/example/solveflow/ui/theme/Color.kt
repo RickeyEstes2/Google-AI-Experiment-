@@ -26,6 +26,7 @@ val Violet400 = Color(0xFFA78BFA)
 val Purple500 = Color(0xFFA855F7) // Tertiary Purple Accent
 val Purple600 = Color(0xFF9333EA)
 
+val Rose400 = Color(0xFFFB7185)
 val Rose500 = Color(0xFFF43F5E) // Error / Delete / Alert
 val Rose600 = Color(0xFFE11D48)
 
