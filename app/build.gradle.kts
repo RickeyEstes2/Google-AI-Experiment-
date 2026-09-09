@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.solveflow"
+    namespace = "com.gptbot.gptbot"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.solveflow"
+        applicationId = "com.gptbot.gptbot"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
