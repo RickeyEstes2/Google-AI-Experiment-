@@ -62,7 +62,7 @@ fun GitHubActionsDialog(
     val gitCommands = """
 git init
 git add .
-git commit -m "Flowchart: Problem Solving Flowchart & CI/CD APK packaging"
+git commit -m "GPT-Bot: AI Assistant & CI/CD APK packaging"
 git branch -M main
 git remote add origin https://github.com/<your-username>/<your-repo>.git
 git push -u origin main
@@ -88,21 +88,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Java (setup-java v5)
-        uses: actions/setup-java@v5
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-
-      - name: Set up Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew || true
 
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace
@@ -110,7 +108,7 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flowchart-debug-apk
+          name: gptbot-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
     """.trimIndent()

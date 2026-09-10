@@ -387,7 +387,7 @@ fun ChatBotMainScreen(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = generationStep.ifBlank { "Executing 5-Stage Chain of Thought..." },
+                                    text = generationStep?.ifBlank { "Executing 5-Stage Chain of Thought..." } ?: "Executing 5-Stage Chain of Thought...",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = Emerald400
